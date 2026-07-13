@@ -6,7 +6,10 @@ const googleIosUrlScheme = process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME;
 module.exports = {
   expo: {
     name: 'SafeWord',
-    slug: 'gwood230469-debug-safeword-app',
+    // Matches the slug already registered against the EAS project below
+    // (auto-created via the expo.dev dashboard) — internal identifier only,
+    // doesn't need to match the repo/package name.
+    slug: 'greg',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
