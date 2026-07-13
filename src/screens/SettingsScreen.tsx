@@ -3,18 +3,27 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { copy } from '../constants/copy';
+import { useAuth } from '../context/AuthContext';
 import { colors, spacing, touchTarget, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 export function SettingsScreen({ navigation }: Props) {
+  const { signOut } = useAuth();
+
+  const onSignOut = async () => {
+    await signOut();
+    navigation.reset({ index: 0, routes: [{ name: 'OnboardingSignIn' }] });
+  };
+
   return (
     <ScreenContainer>
       <Text style={styles.header}>Settings</Text>
       <SettingsRow label={copy.settings.changeSafeWord} onPress={() => navigation.navigate('SafeWord')} />
       <SettingsRow label={copy.settings.manageCircle} onPress={() => navigation.navigate('FamilyCircle')} />
-      <SettingsRow label={copy.settings.notifications} onPress={() => {}} isLast />
+      <SettingsRow label={copy.settings.notifications} onPress={() => {}} />
+      <SettingsRow label={copy.settings.signOut} onPress={onSignOut} isLast />
     </ScreenContainer>
   );
 }

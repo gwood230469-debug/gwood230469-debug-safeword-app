@@ -9,8 +9,8 @@ import { FamilyCircleScreen } from '../screens/FamilyCircleScreen';
 import { WeeklyDigestScreen } from '../screens/WeeklyDigestScreen';
 import { WeeklyDigestDetailScreen } from '../screens/WeeklyDigestDetailScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
-import { PhoneEntryScreen } from '../screens/onboarding/PhoneEntryScreen';
-import { OtpScreen } from '../screens/onboarding/OtpScreen';
+import { SignInScreen } from '../screens/onboarding/SignInScreen';
+import { NamePromptScreen } from '../screens/onboarding/NamePromptScreen';
 import { AddMembersScreen } from '../screens/onboarding/AddMembersScreen';
 import { OnboardingSafeWordScreen } from '../screens/onboarding/OnboardingSafeWordScreen';
 
@@ -35,11 +35,11 @@ export function RootNavigator({ initialRouteName = 'Home' }: { initialRouteName?
       <Stack.Screen name="WeeklyDigestDetail" component={WeeklyDigestDetailScreen} options={{ title: '' }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: '' }} />
       <Stack.Screen
-        name="OnboardingPhoneEntry"
-        component={PhoneEntryScreen}
+        name="OnboardingSignIn"
+        component={SignInScreen}
         options={{ title: '', headerBackVisible: false }}
       />
-      <Stack.Screen name="OnboardingOtp" component={OtpScreen} options={{ title: '' }} />
+      <Stack.Screen name="OnboardingName" component={NamePromptScreen} options={{ title: '' }} />
       <Stack.Screen name="OnboardingAddMembers" component={AddMembersScreen} options={{ title: '' }} />
       <Stack.Screen name="OnboardingSafeWord" component={OnboardingSafeWordScreen} options={{ title: '' }} />
     </Stack.Navigator>

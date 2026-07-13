@@ -33,6 +33,7 @@ export function VerifyCallScreen({ navigation }: Props) {
   }, [confirmedMembers, selectedMember]);
 
   const callDirectly = (member: CircleMember) => {
+    if (!member.phoneNumber) return;
     Linking.openURL(`tel:${member.phoneNumber}`);
   };
 
@@ -82,12 +83,14 @@ export function VerifyCallScreen({ navigation }: Props) {
 
         {selectedMember && (
           <>
-            <Button
-              label={copy.verify.call.button(selectedMember.displayName)}
-              variant="primary"
-              onPress={() => callDirectly(selectedMember)}
-              style={styles.callButton}
-            />
+            {selectedMember.phoneNumber && (
+              <Button
+                label={copy.verify.call.button(selectedMember.displayName)}
+                variant="primary"
+                onPress={() => callDirectly(selectedMember)}
+                style={styles.callButton}
+              />
+            )}
             <Button
               label={copy.verify.loopin.button}
               variant="outline"

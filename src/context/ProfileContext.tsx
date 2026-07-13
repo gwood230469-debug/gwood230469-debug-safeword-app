@@ -1,11 +1,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { getOwnDisplayName, setOwnDisplayName } from '../lib/profile';
+import { createProfile, getOwnDisplayName } from '../lib/profile';
+import { AuthProvider as SignInProvider } from '../types/models';
 import { useAuth } from './AuthContext';
 
 type ProfileContextValue = {
   loading: boolean;
   displayName: string | null;
-  setDisplayName: (name: string) => Promise<void>;
+  createProfile: (name: string, authProvider: SignInProvider) => Promise<void>;
 };
 
 const ProfileContext = createContext<ProfileContextValue | undefined>(undefined);
@@ -33,17 +34,19 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     refresh();
   }, [refresh]);
 
-  const setDisplayName = useCallback(
-    async (name: string) => {
+  const createProfileFn = useCallback(
+    async (name: string, authProvider: SignInProvider) => {
       if (!userId) throw new Error('Not signed in');
-      await setOwnDisplayName(userId, name);
+      await createProfile(userId, name, authProvider);
       setDisplayNameState(name);
     },
     [userId]
   );
 
   return (
-    <ProfileContext.Provider value={{ loading, displayName, setDisplayName }}>{children}</ProfileContext.Provider>
+    <ProfileContext.Provider value={{ loading, displayName, createProfile: createProfileFn }}>
+      {children}
+    </ProfileContext.Provider>
   );
 }
 

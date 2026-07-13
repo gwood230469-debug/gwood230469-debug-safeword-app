@@ -1,12 +1,18 @@
 import { Session } from '@supabase/supabase-js';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+});
 
 type AuthContextValue = {
   session: Session | null;
   loading: boolean;
-  sendOtp: (phoneNumber: string) => Promise<{ error: string | null }>;
-  confirmOtp: (phoneNumber: string, code: string) => Promise<{ error: string | null; userId: string | null }>;
+  signInWithApple: () => Promise<{ error: string | null; userId: string | null }>;
+  signInWithGoogle: () => Promise<{ error: string | null; userId: string | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -33,13 +39,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       session,
       loading,
-      sendOtp: async (phoneNumber: string) => {
-        const { error } = await supabase.auth.signInWithOtp({ phone: phoneNumber });
-        return { error: error?.message ?? null };
+      signInWithApple: async () => {
+        try {
+          const credential = await AppleAuthentication.signInAsync({
+            requestedScopes: [
+              AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+              AppleAuthentication.AppleAuthenticationScope.EMAIL,
+            ],
+          });
+          if (!credential.identityToken) {
+            return { error: 'Apple did not return an identity token.', userId: null };
+          }
+          const { data, error } = await supabase.auth.signInWithIdToken({
+            provider: 'apple',
+            token: credential.identityToken,
+          });
+          return { error: error?.message ?? null, userId: data.user?.id ?? null };
+        } catch (e: any) {
+          if (e?.code === 'ERR_REQUEST_CANCELED') return { error: null, userId: null };
+          return { error: e?.message ?? 'Apple sign-in failed.', userId: null };
+        }
       },
-      confirmOtp: async (phoneNumber: string, code: string) => {
-        const { data, error } = await supabase.auth.verifyOtp({ phone: phoneNumber, token: code, type: 'sms' });
-        return { error: error?.message ?? null, userId: data.user?.id ?? null };
+      signInWithGoogle: async () => {
+        try {
+          await GoogleSignin.hasPlayServices();
+          const response = await GoogleSignin.signIn();
+          if (response.type !== 'success' || !response.data.idToken) {
+            return { error: null, userId: null };
+          }
+          const { data, error } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: response.data.idToken,
+          });
+          return { error: error?.message ?? null, userId: data.user?.id ?? null };
+        } catch (e: any) {
+          return { error: e?.message ?? 'Google sign-in failed.', userId: null };
+        }
       },
       signOut: async () => {
         await supabase.auth.signOut();

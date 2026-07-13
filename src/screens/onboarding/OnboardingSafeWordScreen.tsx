@@ -21,7 +21,7 @@ export function OnboardingSafeWordScreen({ navigation }: Props) {
       <ScreenContainer>
         <Text style={styles.waitingTitle}>Almost there</Text>
         <Text style={styles.waitingBody}>
-          Once at least one family member confirms their phone, you'll be able to choose your circle's safe word.
+          Once at least one family member accepts their invite, you'll be able to choose your circle's safe word.
           We'll let you know.
         </Text>
         <Button label="Continue to home" variant="primary" onPress={goHome} style={styles.waitingButton} />

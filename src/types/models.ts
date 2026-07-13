@@ -1,3 +1,12 @@
+export type AuthProvider = 'apple' | 'google';
+
+export type UserProfile = {
+  id: string;
+  authProvider: AuthProvider;
+  displayName: string;
+  createdAt: string;
+};
+
 export type MemberStatus = 'invited' | 'confirmed';
 
 export type Circle = {
@@ -10,12 +19,22 @@ export type CircleMember = {
   id: string;
   circleId: string;
   userId: string | null;
-  phoneNumber: string;
+  phoneNumber: string | null;
   displayName: string;
   status: MemberStatus;
   invitedAt: string;
   confirmedAt: string | null;
   avatarUrl?: string | null;
+};
+
+export type CircleInvite = {
+  id: string;
+  circleId: string;
+  memberId: string;
+  token: string;
+  createdBy: string;
+  expiresAt: string;
+  usedAt: string | null;
 };
 
 export type SafeWord = {

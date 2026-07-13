@@ -1,3 +1,4 @@
+import { AuthProvider } from '../types/models';
 import { supabase } from './supabase';
 
 export async function getOwnDisplayName(userId: string): Promise<string | null> {
@@ -6,7 +7,9 @@ export async function getOwnDisplayName(userId: string): Promise<string | null> 
   return data?.display_name ?? null;
 }
 
-export async function setOwnDisplayName(userId: string, displayName: string): Promise<void> {
-  const { error } = await supabase.from('profiles').upsert({ id: userId, display_name: displayName });
+export async function createProfile(userId: string, displayName: string, authProvider: AuthProvider): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({ id: userId, display_name: displayName, auth_provider: authProvider });
   if (error) throw error;
 }

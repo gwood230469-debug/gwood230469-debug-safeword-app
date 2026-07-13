@@ -5,6 +5,9 @@ import { Avatar } from '../components/Avatar';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { copy } from '../constants/copy';
 import { useCircle } from '../context/CircleContext';
+import { useProfile } from '../context/ProfileContext';
+import { getInviteTokenForMember } from '../lib/circle';
+import { shareInvite } from '../lib/invite';
 import { colors, spacing, touchTarget, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 import { CircleMember } from '../types/models';
@@ -13,6 +16,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'FamilyCircle'>;
 
 export function FamilyCircleScreen({ navigation }: Props) {
   const { members } = useCircle();
+  const { displayName } = useProfile();
+
+  const onResend = async (member: CircleMember) => {
+    const token = await getInviteTokenForMember(member.id);
+    if (token) await shareInvite(displayName ?? 'Your family', member.displayName, token);
+  };
 
   return (
     <ScreenContainer>
@@ -21,7 +30,7 @@ export function FamilyCircleScreen({ navigation }: Props) {
         data={members}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => <MemberRow member={item} />}
+        renderItem={({ item }) => <MemberRow member={item} onResend={onResend} />}
         ListFooterComponent={
           <Pressable
             style={styles.addRow}
@@ -36,27 +45,39 @@ export function FamilyCircleScreen({ navigation }: Props) {
   );
 }
 
-function MemberRow({ member }: { member: CircleMember }) {
+function MemberRow({ member, onResend }: { member: CircleMember; onResend: (member: CircleMember) => void }) {
   const pending = member.status === 'invited';
   return (
     <View style={styles.row}>
       <Avatar name={member.displayName} size={48} />
       <View style={styles.rowText}>
         <Text style={styles.rowName}>{member.displayName}</Text>
-        {pending && <Text style={styles.rowPending}>Invited — waiting to confirm</Text>}
+        <Text style={styles.rowStatus}>{pending ? copy.circle.status.invited : 'Confirmed'}</Text>
       </View>
-      {!pending && (
+      {pending ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Call ${member.displayName}`}
+          accessibilityLabel={`Resend invite to ${member.displayName}`}
           hitSlop={8}
-          style={styles.callIcon}
-          onPress={() => Linking.openURL(`tel:${member.phoneNumber}`)}
+          style={styles.resendButton}
+          onPress={() => onResend(member)}
         >
-          <Text style={styles.callIconText} maxFontSizeMultiplier={1}>
-            📞
-          </Text>
+          <Text style={styles.resendText}>{copy.circle.resend}</Text>
         </Pressable>
+      ) : (
+        member.phoneNumber && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Call ${member.displayName}`}
+            hitSlop={8}
+            style={styles.callIcon}
+            onPress={() => Linking.openURL(`tel:${member.phoneNumber}`)}
+          >
+            <Text style={styles.callIconText} maxFontSizeMultiplier={1}>
+              📞
+            </Text>
+          </Pressable>
+        )
       )}
     </View>
   );
@@ -89,7 +110,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '600',
   },
-  rowPending: {
+  rowStatus: {
     fontSize: typography.caption,
     color: colors.textMuted,
     marginTop: 2,
@@ -102,6 +123,16 @@ const styles = StyleSheet.create({
   },
   callIconText: {
     fontSize: 22,
+  },
+  resendButton: {
+    minHeight: touchTarget.minSize,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  resendText: {
+    fontSize: typography.body,
+    color: colors.navy,
+    fontWeight: '600',
   },
   addRow: {
     marginTop: spacing.lg,

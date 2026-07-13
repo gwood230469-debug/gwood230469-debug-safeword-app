@@ -1,14 +1,46 @@
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
 import { supabase } from './supabase';
 
-// expo-notifications can't be used at all right now: it's a hard requirement
-// of Expo Go since SDK 53 (its own auto-loaded side-effect module crashes on
-// startup there, independent of anything this app's code does), and it needs
-// a full development build (`eas build --profile development`, or `eas init`
-// + a dev client) instead. Until this project is ready to move off Expo Go
-// for testing, registration is a no-op — the rest of the loop-in flow
-// (creating the VerificationEvent) works fine without it.
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+// Requires an EAS project id (app.config.js `extra.eas.projectId`, set by
+// `eas init`) to mint a real Expo push token, and a development/standalone
+// build — this now genuinely can't run in Expo Go at all (unrelated to this
+// app's code; Expo Go dropped push support in SDK 53), which is exactly why
+// this project moved to a custom dev client for testing.
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
-  return null;
+  if (!Device.isDevice) return null;
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== 'granted') return null;
+
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+  if (!projectId) {
+    console.warn('No EAS project id configured — skipping push token registration. Run `eas init` to enable push.');
+    return null;
+  }
+
+  try {
+    const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+    return data;
+  } catch (e) {
+    console.warn('Could not get an Expo push token', e);
+    return null;
+  }
 }
 
 export async function saveOwnPushToken(userId: string, expoPushToken: string): Promise<void> {

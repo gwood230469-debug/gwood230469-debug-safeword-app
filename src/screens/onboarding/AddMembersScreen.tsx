@@ -5,7 +5,9 @@ import { Button } from '../../components/Button';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { copy } from '../../constants/copy';
 import { useCircle } from '../../context/CircleContext';
+import { useProfile } from '../../context/ProfileContext';
 import { normalizePhoneNumber } from '../../lib/phone';
+import { shareInvite } from '../../lib/invite';
 import { colors, radius, spacing, touchTarget, typography } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation/types';
 
@@ -13,6 +15,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingAddMembers'>;
 
 export function AddMembersScreen({ navigation }: Props) {
   const { members, addMember } = useCircle();
+  const { displayName } = useProfile();
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -20,14 +23,15 @@ export function AddMembersScreen({ navigation }: Props) {
 
   const onAddAnother = async () => {
     const trimmedName = name.trim();
-    const normalizedPhone = normalizePhoneNumber(phoneNumber);
-    if (!trimmedName || !normalizedPhone) return;
+    if (!trimmedName) return;
+    const normalizedPhone = phoneNumber.trim() ? normalizePhoneNumber(phoneNumber) : null;
     setSaving(true);
     setError(null);
     try {
-      await addMember(trimmedName, normalizedPhone);
+      const { inviteToken } = await addMember(trimmedName, normalizedPhone);
       setName('');
       setPhoneNumber('');
+      await shareInvite(displayName ?? 'Your family', trimmedName, inviteToken);
     } catch (e: any) {
       setError(e?.message ?? 'Could not add that family member.');
     } finally {
@@ -37,7 +41,7 @@ export function AddMembersScreen({ navigation }: Props) {
 
   return (
     <ScreenContainer>
-      <Text style={styles.title}>{copy.onboarding.addMembers.title}</Text>
+      <Text style={styles.title}>{copy.onboarding.circle.title}</Text>
       <Text style={styles.subtitle}>{copy.onboarding.addMembers.subtitle}</Text>
 
       <FlatList
@@ -47,7 +51,7 @@ export function AddMembersScreen({ navigation }: Props) {
         renderItem={({ item }) => (
           <View style={styles.addedRow}>
             <Text style={styles.addedName}>{item.displayName}</Text>
-            <Text style={styles.addedPhone}>{item.phoneNumber}</Text>
+            <Text style={styles.addedStatus}>{copy.circle.status.invited}</Text>
           </View>
         )}
       />
@@ -69,20 +73,20 @@ export function AddMembersScreen({ navigation }: Props) {
           setPhoneNumber(text);
           setError(null);
         }}
-        placeholder="+44 7700 900000"
+        placeholder="Phone number (optional, for calling)"
         placeholderTextColor={colors.textMuted}
         keyboardType="phone-pad"
         style={styles.input}
-        accessibilityLabel="Family member phone number"
+        accessibilityLabel="Family member phone number, optional"
       />
 
       {error && <Text style={styles.error}>⚠ {error}</Text>}
 
       <Button
-        label={saving ? 'Adding…' : copy.circle.addAnother}
+        label={saving ? 'Sending…' : copy.onboarding.invite.button}
         variant="outline"
         onPress={onAddAnother}
-        disabled={!name.trim() || !phoneNumber.trim() || saving}
+        disabled={!name.trim() || saving}
         style={styles.addButton}
       />
 
@@ -125,7 +129,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '600',
   },
-  addedPhone: {
+  addedStatus: {
     fontSize: typography.body,
     color: colors.textMuted,
   },

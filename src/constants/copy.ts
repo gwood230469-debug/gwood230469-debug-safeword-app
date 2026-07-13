@@ -1,4 +1,8 @@
 export const copy = {
+  auth: {
+    apple: 'Continue with Apple',
+    google: 'Continue with Google',
+  },
   home: {
     greeting: (firstName: string) => `Good afternoon, ${firstName}`,
     cta: {
@@ -34,27 +38,33 @@ export const copy = {
   circle: {
     add: 'Add family member',
     addAnother: 'Add another',
+    status: {
+      invited: 'Invited — waiting',
+    },
+    resend: 'Resend invite',
   },
   loopin: {
     notification: (name: string) => `${name} thinks they might be on a scam call. Can you help?`,
   },
   onboarding: {
-    phoneEntry: {
-      title: 'Confirm your number',
-      subtitle: "We'll text you a code to confirm it's you.",
+    name: {
+      prompt: 'What should we call you?',
     },
-    otp: {
-      title: 'Enter the code',
-      subtitle: 'We sent a 6-digit code by text.',
+    circle: {
+      title: 'Create your family circle',
+    },
+    invite: {
+      button: 'Send invite',
     },
     addMembers: {
       title: 'Add family members',
-      subtitle: "Add each person one at a time. They'll confirm their own phone before joining.",
+      subtitle: "Add each person one at a time, then send them an invite link however you'd normally message them.",
     },
   },
   settings: {
     changeSafeWord: 'Change safe word',
     manageCircle: 'Manage circle',
     notifications: 'Notification preferences',
+    signOut: 'Sign out',
   },
 } as const;

@@ -1,3 +1,5 @@
+import { AuthProvider } from '../types/models';
+
 export type RootStackParamList = {
   Home: undefined;
   VerifyCall: undefined;
@@ -6,8 +8,8 @@ export type RootStackParamList = {
   WeeklyDigest: undefined;
   WeeklyDigestDetail: { itemId: string };
   Settings: undefined;
-  OnboardingPhoneEntry: undefined;
-  OnboardingOtp: { phoneNumber: string; displayName: string };
+  OnboardingSignIn: undefined;
+  OnboardingName: { authProvider: AuthProvider };
   OnboardingAddMembers: undefined;
   OnboardingSafeWord: undefined;
 };

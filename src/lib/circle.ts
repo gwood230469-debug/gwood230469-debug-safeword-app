@@ -63,33 +63,57 @@ export async function listMembers(circleId: string): Promise<CircleMember[]> {
   return (data ?? []).map(fromRow);
 }
 
-export async function inviteMember(circleId: string, displayName: string, phoneNumber: string): Promise<CircleMember> {
-  const { data, error } = await supabase
+export type NewMemberInvite = { member: CircleMember; inviteToken: string };
+
+// Creates the circle_members row plus its circle_invites row in one call —
+// the caller uses `inviteToken` to build the shareable deep link immediately.
+export async function inviteMember(
+  circleId: string,
+  createdBy: string,
+  displayName: string,
+  phoneNumber: string | null
+): Promise<NewMemberInvite> {
+  const { data: memberRow, error: memberError } = await supabase
     .from('circle_members')
     .insert({ circle_id: circleId, display_name: displayName, phone_number: phoneNumber, status: 'invited' })
     .select('*')
     .single();
-  if (error) throw error;
-  return fromRow(data);
+  if (memberError) throw memberError;
+
+  const { data: inviteRow, error: inviteError } = await supabase
+    .from('circle_invites')
+    .insert({ circle_id: circleId, member_id: memberRow.id, created_by: createdBy })
+    .select('token')
+    .single();
+  if (inviteError) throw inviteError;
+
+  return { member: fromRow(memberRow), inviteToken: inviteRow.token };
 }
 
-// Called right after a user confirms their own phone via OTP. If someone had
-// already added this phone number to a circle, this links & confirms that
-// invited row to the now-authenticated user — this *is* "confirming their own
-// device", no separate invite link/SMS needed beyond the normal sign-in OTP.
-export async function tryConfirmInvitedMembership(
-  userId: string,
-  phoneNumber: string
-): Promise<CircleMember | null> {
+// For "Resend invite": the same still-unused token is reused rather than
+// minting a new one, so the link stays valid even if the invitee already has
+// an old copy of it somewhere.
+export async function getInviteTokenForMember(memberId: string): Promise<string | null> {
   const { data, error } = await supabase
-    .from('circle_members')
-    .update({ user_id: userId, status: 'confirmed', confirmed_at: new Date().toISOString() })
-    .eq('phone_number', phoneNumber)
-    .eq('status', 'invited')
-    .select('*')
+    .from('circle_invites')
+    .select('token')
+    .eq('member_id', memberId)
+    .is('used_at', null)
+    .order('expires_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (error) throw error;
-  return data ? fromRow(data) : null;
+  return data?.token ?? null;
+}
+
+// Confirms the signed-in caller into whichever circle_members row this
+// invite token belongs to. Runs server-side via a security-definer function
+// (see migration 0006) rather than direct table RLS, since the caller has no
+// membership yet to check against before this succeeds.
+export async function claimInvite(token: string): Promise<string> {
+  const { data, error } = await supabase.rpc('claim_invite', { invite_token: token });
+  if (error) throw error;
+  return data as string;
 }
 
 export async function safeWordExists(circleId: string): Promise<boolean> {
