@@ -6,7 +6,11 @@ import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { copy } from '../constants/copy';
+import { useAuth } from '../context/AuthContext';
 import { useCircle } from '../context/CircleContext';
+import { useProfile } from '../context/ProfileContext';
+import { getPushToken, sendPushNotification } from '../lib/push';
+import { createLoopInEvent } from '../lib/verification';
 import { colors, spacing, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 import { CircleMember } from '../types/models';
@@ -14,7 +18,9 @@ import { CircleMember } from '../types/models';
 type Props = NativeStackScreenProps<RootStackParamList, 'VerifyCall'>;
 
 export function VerifyCallScreen({ navigation }: Props) {
-  const { members } = useCircle();
+  const { session } = useAuth();
+  const { displayName } = useProfile();
+  const { circleId, members } = useCircle();
   const confirmedMembers = members.filter((m) => m.status === 'confirmed');
   const [selectedMember, setSelectedMember] = useState<CircleMember | null>(null);
   const [loopInPickerVisible, setLoopInPickerVisible] = useState(false);
@@ -30,10 +36,20 @@ export function VerifyCallScreen({ navigation }: Props) {
     Linking.openURL(`tel:${member.phoneNumber}`);
   };
 
-  const requestLoopIn = (member: CircleMember) => {
-    // Creates a VerificationEvent (type: loop_in_request) and pushes copy.loopin.notification to `member` once backend is wired.
-    setLoopInSentTo(member.displayName);
+  const requestLoopIn = async (member: CircleMember) => {
     setLoopInPickerVisible(false);
+    setLoopInSentTo(member.displayName);
+
+    const userId = session?.user.id;
+    if (!circleId || !userId) return;
+    await createLoopInEvent(circleId, userId);
+
+    if (member.userId) {
+      const token = await getPushToken(member.userId);
+      if (token) {
+        await sendPushNotification(token, 'Family Circle', copy.loopin.notification(displayName ?? 'Someone in your circle'));
+      }
+    }
   };
 
   return (

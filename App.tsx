@@ -1,11 +1,12 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { CircleProvider, useCircle } from './src/context/CircleContext';
 import { ProfileProvider, useProfile } from './src/context/ProfileContext';
+import { registerForPushNotificationsAsync, saveOwnPushToken } from './src/lib/push';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { RootStackParamList } from './src/navigation/types';
 import { colors } from './src/theme/tokens';
@@ -14,6 +15,14 @@ function Root() {
   const { session, loading: authLoading } = useAuth();
   const { loading: circleLoading, circleId, members, hasSafeWord } = useCircle();
   const { loading: profileLoading } = useProfile();
+
+  useEffect(() => {
+    const userId = session?.user.id;
+    if (!userId) return;
+    registerForPushNotificationsAsync().then((token) => {
+      if (token) saveOwnPushToken(userId, token).catch(() => {});
+    });
+  }, [session?.user.id]);
 
   if (authLoading || (session && (circleLoading || profileLoading))) {
     return (
