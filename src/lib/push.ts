@@ -1,22 +1,44 @@
-import Constants from 'expo-constants';
+import Constants, { AppOwnership } from 'expo-constants';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import { supabase } from './supabase';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+// Since Expo SDK 53, Expo Go no longer supports push notifications at all —
+// merely `import`-ing expo-notifications throws at module-evaluation time
+// when running inside Expo Go. So this can't be a static top-level import;
+// `expo-notifications` is only require()'d lazily, and only outside Expo Go
+// (a real device build, or a custom dev client, both still support it fine).
+const isExpoGo = Constants.appOwnership === AppOwnership.Expo;
+
+let cachedNotifications: typeof import('expo-notifications') | null = null;
+function loadNotifications(): typeof import('expo-notifications') | null {
+  if (isExpoGo) return null;
+  if (!cachedNotifications) {
+    cachedNotifications = require('expo-notifications');
+    cachedNotifications!.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+  }
+  return cachedNotifications;
+}
 
 // Requires an EAS project id (app.json `extra.eas.projectId`, set by `eas init`)
 // to mint a real Expo push token. Returns null (and never throws) if that's not
-// configured yet, or the user declines notification permission, or it's a
-// simulator — loop-in still works locally either way, it just won't push.
+// configured yet, if running in Expo Go, if the user declines notification
+// permission, or on a simulator — loop-in still works locally either way, it
+// just won't push.
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
+  const Notifications = loadNotifications();
+  if (!Notifications) {
+    if (isExpoGo) {
+      console.warn('Push notifications need a development build or standalone app — not supported in Expo Go since SDK 53.');
+    }
+    return null;
+  }
   if (!Device.isDevice) return null;
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
