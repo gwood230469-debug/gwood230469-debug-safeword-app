@@ -16,7 +16,6 @@ export function SafeWordScreen({}: Props) {
         headline="Safe word"
         savedMessage="Saved. Everyone in your circle will get a quiet notification that it changed."
         onSaved={(value) => {
-          // Stored as plaintext for now — client-side encryption lands in the next pass.
           saveSafeWord(value);
         }}
       />

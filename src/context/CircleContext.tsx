@@ -7,6 +7,7 @@ import {
   safeWordExists,
   setSafeWord as setSafeWordRow,
 } from '../lib/circle';
+import { hashSafeWord } from '../lib/safeWordHash';
 import { CircleMember } from '../types/models';
 import { useAuth } from './AuthContext';
 
@@ -18,7 +19,7 @@ type CircleContextValue = {
   refresh: () => Promise<void>;
   ensureOwnCircle: () => Promise<string>;
   addMember: (displayName: string, phoneNumber: string) => Promise<void>;
-  saveSafeWord: (encryptedValue: string) => Promise<void>;
+  saveSafeWord: (rawValue: string) => Promise<void>;
 };
 
 const CircleContext = createContext<CircleContextValue | undefined>(undefined);
@@ -81,9 +82,10 @@ export function CircleProvider({ children }: { children: React.ReactNode }) {
   );
 
   const saveSafeWord = useCallback(
-    async (encryptedValue: string) => {
+    async (rawValue: string) => {
       if (!circleId || !userId) throw new Error('No circle to save a safe word for');
-      await setSafeWordRow(circleId, userId, encryptedValue);
+      const hashed = await hashSafeWord(rawValue);
+      await setSafeWordRow(circleId, userId, hashed);
       setHasSafeWord(true);
     },
     [circleId, userId]

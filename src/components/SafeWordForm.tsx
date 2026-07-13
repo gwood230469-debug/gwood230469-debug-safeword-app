@@ -9,20 +9,22 @@ type Props = {
   headline: string;
   savedMessage: string;
   saveLabel?: string;
-  onSaved: (value: string) => void;
+  onSaved: (value: string) => void | Promise<void>;
 };
 
 export function SafeWordForm({ headline, savedMessage, saveLabel, onSaved }: Props) {
   const [value, setValue] = useState('');
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useScreenCaptureProtection();
 
-  const onSave = () => {
+  const onSave = async () => {
     if (!value.trim()) return;
-    // Persists to SafeWord.encrypted_value (encrypted client-side before it ever reaches Supabase) once backend is wired.
+    setSaving(true);
+    await onSaved(value.trim());
+    setSaving(false);
     setSaved(true);
-    onSaved(value.trim());
   };
 
   return (
@@ -50,10 +52,10 @@ export function SafeWordForm({ headline, savedMessage, saveLabel, onSaved }: Pro
       <Text style={styles.guidance}>{copy.safeword.guidance}</Text>
 
       <Button
-        label={saveLabel ?? copy.safeword.save}
+        label={saving ? 'Saving…' : saveLabel ?? copy.safeword.save}
         variant="accent"
         onPress={onSave}
-        disabled={!value.trim()}
+        disabled={!value.trim() || saving}
         style={styles.saveButton}
       />
 

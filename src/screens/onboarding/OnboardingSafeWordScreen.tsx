@@ -35,7 +35,6 @@ export function OnboardingSafeWordScreen({ navigation }: Props) {
         headline="Choose your safe word"
         savedMessage="Your circle is set up."
         onSaved={async (value) => {
-          // Stored as plaintext for now — client-side encryption lands in the next pass.
           await saveSafeWord(value);
           goHome();
         }}
