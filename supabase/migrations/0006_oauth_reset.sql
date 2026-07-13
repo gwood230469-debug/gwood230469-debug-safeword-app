@@ -49,6 +49,33 @@ create table circles (
 
 alter table circles enable row level security;
 
+-- ── circle_members ──────────────────────────────────────────────────────
+-- phone_number is contact info only now (for the "call directly" dialer),
+-- never used to verify or link an identity — that's what circle_invites is
+-- for. Nullable since a phone number is optional when adding someone.
+--
+-- Created here (before its RLS policies, and before the is_circle_member()
+-- family of helpers below) purely so those helper functions — which
+-- reference this table — have something to reference. Postgres validates
+-- `language sql` function bodies against the schema at CREATE time, not
+-- lazily at first call.
+
+create table circle_members (
+  id uuid primary key default gen_random_uuid(),
+  circle_id uuid not null references circles (id) on delete cascade,
+  user_id uuid references auth.users (id) on delete set null,
+  phone_number text,
+  display_name text not null,
+  status text not null default 'invited' check (status in ('invited', 'confirmed')),
+  invited_at timestamptz not null default now(),
+  confirmed_at timestamptz
+);
+
+create index circle_members_circle_id_idx on circle_members (circle_id);
+create index circle_members_user_id_idx on circle_members (user_id);
+
+alter table circle_members enable row level security;
+
 -- Security-definer helpers: avoid recursive RLS evaluation when a policy on
 -- circle_members needs to check the caller's own membership in that table.
 
@@ -101,27 +128,6 @@ create policy "circle members and creator can view circle"
 create policy "authenticated users can create a circle"
   on circles for insert
   with check (created_by = auth.uid());
-
--- ── circle_members ──────────────────────────────────────────────────────
--- phone_number is contact info only now (for the "call directly" dialer),
--- never used to verify or link an identity — that's what circle_invites is
--- for. Nullable since a phone number is optional when adding someone.
-
-create table circle_members (
-  id uuid primary key default gen_random_uuid(),
-  circle_id uuid not null references circles (id) on delete cascade,
-  user_id uuid references auth.users (id) on delete set null,
-  phone_number text,
-  display_name text not null,
-  status text not null default 'invited' check (status in ('invited', 'confirmed')),
-  invited_at timestamptz not null default now(),
-  confirmed_at timestamptz
-);
-
-create index circle_members_circle_id_idx on circle_members (circle_id);
-create index circle_members_user_id_idx on circle_members (user_id);
-
-alter table circle_members enable row level security;
 
 create policy "circle members can view members"
   on circle_members for select
