@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } fro
 import { Button } from '../../components/Button';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { copy } from '../../constants/copy';
+import { useAuth } from '../../context/AuthContext';
 import { colors, radius, spacing, touchTarget, typography } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation/types';
 
@@ -11,11 +12,22 @@ type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingPhoneEntry'>;
 
 export function PhoneEntryScreen({ navigation }: Props) {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const { sendOtp } = useAuth();
 
-  const sendCode = () => {
-    if (!phoneNumber.trim()) return;
-    // Sends a Supabase phone OTP to `phoneNumber` once auth is wired.
-    navigation.navigate('OnboardingOtp', { phoneNumber: phoneNumber.trim() });
+  const sendCode = async () => {
+    const trimmed = phoneNumber.trim();
+    if (!trimmed) return;
+    setSending(true);
+    setError(null);
+    const { error: sendError } = await sendOtp(trimmed);
+    setSending(false);
+    if (sendError) {
+      setError(sendError);
+      return;
+    }
+    navigation.navigate('OnboardingOtp', { phoneNumber: trimmed });
   };
 
   return (
@@ -27,7 +39,10 @@ export function PhoneEntryScreen({ navigation }: Props) {
 
           <TextInput
             value={phoneNumber}
-            onChangeText={setPhoneNumber}
+            onChangeText={(text) => {
+              setPhoneNumber(text);
+              setError(null);
+            }}
             placeholder="+44 7700 900000"
             placeholderTextColor={colors.textMuted}
             keyboardType="phone-pad"
@@ -36,7 +51,14 @@ export function PhoneEntryScreen({ navigation }: Props) {
             accessibilityLabel="Phone number"
           />
 
-          <Button label="Send code" variant="primary" onPress={sendCode} disabled={!phoneNumber.trim()} />
+          {error && <Text style={styles.error}>⚠ {error}</Text>}
+
+          <Button
+            label={sending ? 'Sending…' : 'Send code'}
+            variant="primary"
+            onPress={sendCode}
+            disabled={!phoneNumber.trim() || sending}
+          />
         </View>
       </KeyboardAvoidingView>
     </ScreenContainer>
@@ -59,6 +81,11 @@ const styles = StyleSheet.create({
     fontSize: typography.bodyLarge,
     color: colors.textMuted,
     marginBottom: spacing.sm,
+  },
+  error: {
+    fontSize: typography.body,
+    color: colors.text,
+    marginTop: -spacing.sm,
   },
   input: {
     minHeight: touchTarget.minSize + 8,

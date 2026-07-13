@@ -4,6 +4,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { copy } from '../../constants/copy';
+import { useAuth } from '../../context/AuthContext';
 import { colors, radius, spacing, touchTarget, typography } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation/types';
 
@@ -11,10 +12,22 @@ type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingOtp'>;
 
 export function OtpScreen({ route, navigation }: Props) {
   const [code, setCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const { confirmOtp } = useAuth();
 
-  const confirmCode = () => {
+  const confirmCode = async () => {
     if (code.trim().length < 6) return;
-    // Verifies the OTP against `route.params.phoneNumber` via Supabase once auth is wired.
+    setConfirming(true);
+    setError(null);
+    const { error: confirmError } = await confirmOtp(route.params.phoneNumber, code.trim());
+    setConfirming(false);
+    if (confirmError) {
+      setError(confirmError);
+      return;
+    }
+    // A confirmed session now exists. RootNavigator will re-route based on whether
+    // this user already has a circle once that lookup is wired in (task #4).
     navigation.navigate('OnboardingAddMembers');
   };
 
@@ -28,7 +41,10 @@ export function OtpScreen({ route, navigation }: Props) {
 
         <TextInput
           value={code}
-          onChangeText={setCode}
+          onChangeText={(text) => {
+            setCode(text);
+            setError(null);
+          }}
           placeholder="123456"
           placeholderTextColor={colors.textMuted}
           keyboardType="number-pad"
@@ -37,7 +53,14 @@ export function OtpScreen({ route, navigation }: Props) {
           accessibilityLabel="Verification code"
         />
 
-        <Button label="Confirm" variant="primary" onPress={confirmCode} disabled={code.trim().length < 6} />
+        {error && <Text style={styles.error}>⚠ {error}</Text>}
+
+        <Button
+          label={confirming ? 'Confirming…' : 'Confirm'}
+          variant="primary"
+          onPress={confirmCode}
+          disabled={code.trim().length < 6 || confirming}
+        />
       </View>
     </ScreenContainer>
   );
@@ -58,6 +81,11 @@ const styles = StyleSheet.create({
     fontSize: typography.bodyLarge,
     color: colors.textMuted,
     marginBottom: spacing.sm,
+  },
+  error: {
+    fontSize: typography.body,
+    color: colors.text,
+    marginTop: -spacing.sm,
   },
   input: {
     minHeight: touchTarget.minSize + 8,
