@@ -5,6 +5,7 @@ import { Button } from '../../components/Button';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { copy } from '../../constants/copy';
 import { useCircle } from '../../context/CircleContext';
+import { normalizePhoneNumber } from '../../lib/phone';
 import { colors, radius, spacing, touchTarget, typography } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation/types';
 
@@ -19,12 +20,12 @@ export function AddMembersScreen({ navigation }: Props) {
 
   const onAddAnother = async () => {
     const trimmedName = name.trim();
-    const trimmedPhone = phoneNumber.trim();
-    if (!trimmedName || !trimmedPhone) return;
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    if (!trimmedName || !normalizedPhone) return;
     setSaving(true);
     setError(null);
     try {
-      await addMember(trimmedName, trimmedPhone);
+      await addMember(trimmedName, normalizedPhone);
       setName('');
       setPhoneNumber('');
     } catch (e: any) {

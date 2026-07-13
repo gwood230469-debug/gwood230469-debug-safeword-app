@@ -5,6 +5,7 @@ import { Button } from '../../components/Button';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { copy } from '../../constants/copy';
 import { useAuth } from '../../context/AuthContext';
+import { normalizePhoneNumber } from '../../lib/phone';
 import { colors, radius, spacing, touchTarget, typography } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation/types';
 
@@ -19,17 +20,17 @@ export function PhoneEntryScreen({ navigation }: Props) {
 
   const sendCode = async () => {
     const trimmedName = displayName.trim();
-    const trimmedPhone = phoneNumber.trim();
-    if (!trimmedName || !trimmedPhone) return;
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    if (!trimmedName || !normalizedPhone) return;
     setSending(true);
     setError(null);
-    const { error: sendError } = await sendOtp(trimmedPhone);
+    const { error: sendError } = await sendOtp(normalizedPhone);
     setSending(false);
     if (sendError) {
       setError(sendError);
       return;
     }
-    navigation.navigate('OnboardingOtp', { phoneNumber: trimmedPhone, displayName: trimmedName });
+    navigation.navigate('OnboardingOtp', { phoneNumber: normalizedPhone, displayName: trimmedName });
   };
 
   return (
