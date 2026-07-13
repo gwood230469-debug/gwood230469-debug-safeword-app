@@ -30,6 +30,11 @@ module.exports = {
     web: {
       favicon: './assets/favicon.png',
     },
+    extra: {
+      eas: {
+        projectId: 'ea7b07e2-f09a-4b98-8974-95530a36df2f',
+      },
+    },
     plugins: [
       'expo-apple-authentication',
       ['expo-notifications', { color: '#0F2A4A' }],
