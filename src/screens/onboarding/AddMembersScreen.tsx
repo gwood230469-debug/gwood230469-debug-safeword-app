@@ -4,24 +4,34 @@ import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from '../../components/Button';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { copy } from '../../constants/copy';
+import { useCircle } from '../../context/CircleContext';
 import { colors, radius, spacing, touchTarget, typography } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingAddMembers'>;
 
-type DraftMember = { id: string; name: string; phoneNumber: string };
-
 export function AddMembersScreen({ navigation }: Props) {
-  const [added, setAdded] = useState<DraftMember[]>([]);
+  const { members, addMember } = useCircle();
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const addMember = () => {
-    if (!name.trim() || !phoneNumber.trim()) return;
-    // Creates a CircleMember row with status "invited" and sends an SMS invite once backend is wired.
-    setAdded((prev) => [...prev, { id: `${Date.now()}`, name: name.trim(), phoneNumber: phoneNumber.trim() }]);
-    setName('');
-    setPhoneNumber('');
+  const onAddAnother = async () => {
+    const trimmedName = name.trim();
+    const trimmedPhone = phoneNumber.trim();
+    if (!trimmedName || !trimmedPhone) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await addMember(trimmedName, trimmedPhone);
+      setName('');
+      setPhoneNumber('');
+    } catch (e: any) {
+      setError(e?.message ?? 'Could not add that family member.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -30,12 +40,12 @@ export function AddMembersScreen({ navigation }: Props) {
       <Text style={styles.subtitle}>{copy.onboarding.addMembers.subtitle}</Text>
 
       <FlatList
-        data={added}
+        data={members}
         keyExtractor={(m) => m.id}
         style={styles.list}
         renderItem={({ item }) => (
           <View style={styles.addedRow}>
-            <Text style={styles.addedName}>{item.name}</Text>
+            <Text style={styles.addedName}>{item.displayName}</Text>
             <Text style={styles.addedPhone}>{item.phoneNumber}</Text>
           </View>
         )}
@@ -43,7 +53,10 @@ export function AddMembersScreen({ navigation }: Props) {
 
       <TextInput
         value={name}
-        onChangeText={setName}
+        onChangeText={(text) => {
+          setName(text);
+          setError(null);
+        }}
         placeholder="Name"
         placeholderTextColor={colors.textMuted}
         style={styles.input}
@@ -51,7 +64,10 @@ export function AddMembersScreen({ navigation }: Props) {
       />
       <TextInput
         value={phoneNumber}
-        onChangeText={setPhoneNumber}
+        onChangeText={(text) => {
+          setPhoneNumber(text);
+          setError(null);
+        }}
         placeholder="+44 7700 900000"
         placeholderTextColor={colors.textMuted}
         keyboardType="phone-pad"
@@ -59,13 +75,21 @@ export function AddMembersScreen({ navigation }: Props) {
         accessibilityLabel="Family member phone number"
       />
 
-      <Button label={copy.circle.addAnother} variant="outline" onPress={addMember} disabled={!name.trim() || !phoneNumber.trim()} style={styles.addButton} />
+      {error && <Text style={styles.error}>⚠ {error}</Text>}
+
+      <Button
+        label={saving ? 'Adding…' : copy.circle.addAnother}
+        variant="outline"
+        onPress={onAddAnother}
+        disabled={!name.trim() || !phoneNumber.trim() || saving}
+        style={styles.addButton}
+      />
 
       <Button
         label="Continue"
         variant="primary"
         onPress={() => navigation.navigate('OnboardingSafeWord')}
-        disabled={added.length === 0}
+        disabled={members.length === 0}
       />
     </ScreenContainer>
   );
@@ -113,6 +137,11 @@ const styles = StyleSheet.create({
     fontSize: typography.bodyLarge,
     color: colors.text,
     backgroundColor: colors.white,
+    marginBottom: spacing.md,
+  },
+  error: {
+    fontSize: typography.body,
+    color: colors.text,
     marginBottom: spacing.md,
   },
   addButton: {

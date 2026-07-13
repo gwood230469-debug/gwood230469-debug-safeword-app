@@ -4,7 +4,7 @@ import { FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Avatar } from '../components/Avatar';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { copy } from '../constants/copy';
-import { mockMembers } from '../data/mock';
+import { useCircle } from '../context/CircleContext';
 import { colors, spacing, touchTarget, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 import { CircleMember } from '../types/models';
@@ -12,11 +12,13 @@ import { CircleMember } from '../types/models';
 type Props = NativeStackScreenProps<RootStackParamList, 'FamilyCircle'>;
 
 export function FamilyCircleScreen({ navigation }: Props) {
+  const { members } = useCircle();
+
   return (
     <ScreenContainer>
       <Text style={styles.header}>Family circle</Text>
       <FlatList
-        data={mockMembers}
+        data={members}
         keyExtractor={(m) => m.id}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => <MemberRow member={item} />}

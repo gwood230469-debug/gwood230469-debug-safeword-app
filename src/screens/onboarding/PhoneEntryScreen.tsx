@@ -11,23 +11,25 @@ import { RootStackParamList } from '../../navigation/types';
 type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingPhoneEntry'>;
 
 export function PhoneEntryScreen({ navigation }: Props) {
+  const [displayName, setDisplayName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const { sendOtp } = useAuth();
 
   const sendCode = async () => {
-    const trimmed = phoneNumber.trim();
-    if (!trimmed) return;
+    const trimmedName = displayName.trim();
+    const trimmedPhone = phoneNumber.trim();
+    if (!trimmedName || !trimmedPhone) return;
     setSending(true);
     setError(null);
-    const { error: sendError } = await sendOtp(trimmed);
+    const { error: sendError } = await sendOtp(trimmedPhone);
     setSending(false);
     if (sendError) {
       setError(sendError);
       return;
     }
-    navigation.navigate('OnboardingOtp', { phoneNumber: trimmed });
+    navigation.navigate('OnboardingOtp', { phoneNumber: trimmedPhone, displayName: trimmedName });
   };
 
   return (
@@ -36,6 +38,19 @@ export function PhoneEntryScreen({ navigation }: Props) {
         <View style={styles.content}>
           <Text style={styles.title}>{copy.onboarding.phoneEntry.title}</Text>
           <Text style={styles.subtitle}>{copy.onboarding.phoneEntry.subtitle}</Text>
+
+          <TextInput
+            value={displayName}
+            onChangeText={(text) => {
+              setDisplayName(text);
+              setError(null);
+            }}
+            placeholder="Your first name"
+            placeholderTextColor={colors.textMuted}
+            autoComplete="name"
+            style={styles.input}
+            accessibilityLabel="Your first name"
+          />
 
           <TextInput
             value={phoneNumber}
@@ -57,7 +72,7 @@ export function PhoneEntryScreen({ navigation }: Props) {
             label={sending ? 'Sending…' : 'Send code'}
             variant="primary"
             onPress={sendCode}
-            disabled={!phoneNumber.trim() || sending}
+            disabled={!displayName.trim() || !phoneNumber.trim() || sending}
           />
         </View>
       </KeyboardAvoidingView>

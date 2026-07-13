@@ -5,6 +5,9 @@ import { Button } from '../../components/Button';
 import { ScreenContainer } from '../../components/ScreenContainer';
 import { copy } from '../../constants/copy';
 import { useAuth } from '../../context/AuthContext';
+import { useCircle } from '../../context/CircleContext';
+import { useProfile } from '../../context/ProfileContext';
+import { tryConfirmInvitedMembership } from '../../lib/circle';
 import { colors, radius, spacing, touchTarget, typography } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation/types';
 
@@ -15,20 +18,33 @@ export function OtpScreen({ route, navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const { confirmOtp } = useAuth();
+  const { refresh: refreshCircle } = useCircle();
+  const { setDisplayName } = useProfile();
 
   const confirmCode = async () => {
     if (code.trim().length < 6) return;
     setConfirming(true);
     setError(null);
-    const { error: confirmError } = await confirmOtp(route.params.phoneNumber, code.trim());
-    setConfirming(false);
-    if (confirmError) {
-      setError(confirmError);
+    const { error: confirmError, userId } = await confirmOtp(route.params.phoneNumber, code.trim());
+    if (confirmError || !userId) {
+      setConfirming(false);
+      setError(confirmError ?? 'Something went wrong confirming that code.');
       return;
     }
-    // A confirmed session now exists. RootNavigator will re-route based on whether
-    // this user already has a circle once that lookup is wired in (task #4).
-    navigation.navigate('OnboardingAddMembers');
+
+    await setDisplayName(route.params.displayName);
+
+    // If someone already added this phone number to their circle, this links &
+    // confirms that invited row — joining an existing circle, not creating one.
+    const joinedExisting = await tryConfirmInvitedMembership(userId, route.params.phoneNumber);
+    await refreshCircle();
+    setConfirming(false);
+
+    if (joinedExisting) {
+      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+    } else {
+      navigation.navigate('OnboardingAddMembers');
+    }
   };
 
   return (

@@ -6,7 +6,7 @@ type AuthContextValue = {
   session: Session | null;
   loading: boolean;
   sendOtp: (phoneNumber: string) => Promise<{ error: string | null }>;
-  confirmOtp: (phoneNumber: string, code: string) => Promise<{ error: string | null }>;
+  confirmOtp: (phoneNumber: string, code: string) => Promise<{ error: string | null; userId: string | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -38,8 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: error?.message ?? null };
       },
       confirmOtp: async (phoneNumber: string, code: string) => {
-        const { error } = await supabase.auth.verifyOtp({ phone: phoneNumber, token: code, type: 'sms' });
-        return { error: error?.message ?? null };
+        const { data, error } = await supabase.auth.verifyOtp({ phone: phoneNumber, token: code, type: 'sms' });
+        return { error: error?.message ?? null, userId: data.user?.id ?? null };
       },
       signOut: async () => {
         await supabase.auth.signOut();

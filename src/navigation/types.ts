@@ -7,7 +7,7 @@ export type RootStackParamList = {
   WeeklyDigestDetail: { itemId: string };
   Settings: undefined;
   OnboardingPhoneEntry: undefined;
-  OnboardingOtp: { phoneNumber: string };
+  OnboardingOtp: { phoneNumber: string; displayName: string };
   OnboardingAddMembers: undefined;
   OnboardingSafeWord: undefined;
 };

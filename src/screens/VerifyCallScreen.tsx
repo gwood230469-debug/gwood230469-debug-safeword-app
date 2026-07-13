@@ -1,24 +1,30 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FlatList, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { copy } from '../constants/copy';
-import { mockMembers } from '../data/mock';
+import { useCircle } from '../context/CircleContext';
 import { colors, spacing, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 import { CircleMember } from '../types/models';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VerifyCall'>;
 
-const confirmedMembers = mockMembers.filter((m) => m.status === 'confirmed');
-
 export function VerifyCallScreen({ navigation }: Props) {
-  const [selectedMember, setSelectedMember] = useState<CircleMember | null>(confirmedMembers[0] ?? null);
+  const { members } = useCircle();
+  const confirmedMembers = members.filter((m) => m.status === 'confirmed');
+  const [selectedMember, setSelectedMember] = useState<CircleMember | null>(null);
   const [loopInPickerVisible, setLoopInPickerVisible] = useState(false);
   const [loopInSentTo, setLoopInSentTo] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedMember && confirmedMembers.length > 0) {
+      setSelectedMember(confirmedMembers[0]);
+    }
+  }, [confirmedMembers, selectedMember]);
 
   const callDirectly = (member: CircleMember) => {
     Linking.openURL(`tel:${member.phoneNumber}`);
@@ -89,7 +95,7 @@ export function VerifyCallScreen({ navigation }: Props) {
           <View style={styles.modalSheet}>
             <Text style={styles.modalTitle}>Loop in someone else</Text>
             <FlatList
-              data={mockMembers.filter((m) => m.status === 'confirmed' && m.id !== selectedMember?.id)}
+              data={confirmedMembers.filter((m) => m.id !== selectedMember?.id)}
               keyExtractor={(m) => m.id}
               renderItem={({ item }) => (
                 <Pressable style={styles.modalRow} onPress={() => requestLoopIn(item)}>

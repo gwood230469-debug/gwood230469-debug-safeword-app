@@ -5,18 +5,23 @@ import { Avatar } from '../components/Avatar';
 import { Card } from '../components/Card';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { copy } from '../constants/copy';
-import { mockFirstName, mockMembers } from '../data/mock';
+import { useCircle } from '../context/CircleContext';
+import { useProfile } from '../context/ProfileContext';
 import { colors, radius, spacing, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
+  const { members } = useCircle();
+  const { displayName } = useProfile();
+  const confirmedMembers = members.filter((m) => m.status === 'confirmed');
+
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
-          <Text style={styles.greeting}>{copy.home.greeting(mockFirstName)}</Text>
+          <Text style={styles.greeting}>{copy.home.greeting(displayName ?? 'there')}</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Notifications"
@@ -44,7 +49,7 @@ export function HomeScreen({ navigation }: Props) {
 
         <Text style={styles.sectionLabel}>{copy.home.circle.label}</Text>
         <FlatList
-          data={mockMembers}
+          data={confirmedMembers}
           keyExtractor={(m) => m.id}
           horizontal
           showsHorizontalScrollIndicator={false}
