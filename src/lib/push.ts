@@ -1,79 +1,14 @@
-import Constants, { ExecutionEnvironment } from 'expo-constants';
-import * as Device from 'expo-device';
 import { supabase } from './supabase';
 
-// Since Expo SDK 53, Expo Go no longer supports push notifications at all —
-// merely `import`-ing expo-notifications throws at module-evaluation time
-// when running inside Expo Go. So this can't be a static top-level import;
-// `expo-notifications` is only require()'d lazily, and only outside Expo Go
-// (a real device build, or a custom dev client, both still support it fine).
-//
-// `Constants.appOwnership === 'expo'` is the "obvious" check but is
-// deprecated and, in practice, unreliable for this — it stayed false inside
-// real Expo Go and let the crash through. `executionEnvironment` is the
-// actively-maintained replacement; 'storeClient' covers both Expo Go and a
-// expo-dev-client build, so as a second layer the require() below is also
-// wrapped in try/catch — belt and suspenders, since this must never crash.
-const isLikelyExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
-
-let cachedNotifications: typeof import('expo-notifications') | null = null;
-function loadNotifications(): typeof import('expo-notifications') | null {
-  if (isLikelyExpoGo) return null;
-  if (!cachedNotifications) {
-    try {
-      cachedNotifications = require('expo-notifications');
-      cachedNotifications!.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowBanner: true,
-          shouldShowList: true,
-          shouldPlaySound: false,
-          shouldSetBadge: false,
-        }),
-      });
-    } catch (e) {
-      console.warn('expo-notifications is unavailable in this runtime', e);
-      return null;
-    }
-  }
-  return cachedNotifications;
-}
-
-// Requires an EAS project id (app.json `extra.eas.projectId`, set by `eas init`)
-// to mint a real Expo push token. Returns null (and never throws) if that's not
-// configured yet, if running in Expo Go, if the user declines notification
-// permission, or on a simulator — loop-in still works locally either way, it
-// just won't push.
+// expo-notifications can't be used at all right now: it's a hard requirement
+// of Expo Go since SDK 53 (its own auto-loaded side-effect module crashes on
+// startup there, independent of anything this app's code does), and it needs
+// a full development build (`eas build --profile development`, or `eas init`
+// + a dev client) instead. Until this project is ready to move off Expo Go
+// for testing, registration is a no-op — the rest of the loop-in flow
+// (creating the VerificationEvent) works fine without it.
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
-  const Notifications = loadNotifications();
-  if (!Notifications) {
-    if (isLikelyExpoGo) {
-      console.warn('Push notifications need a development build or standalone app — not supported in Expo Go since SDK 53.');
-    }
-    return null;
-  }
-  if (!Device.isDevice) return null;
-
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-  if (finalStatus !== 'granted') return null;
-
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-  if (!projectId) {
-    console.warn('No EAS project id configured — skipping push token registration. Run `eas init` to enable push.');
-    return null;
-  }
-
-  try {
-    const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
-    return data;
-  } catch (e) {
-    console.warn('Could not get an Expo push token', e);
-    return null;
-  }
+  return null;
 }
 
 export async function saveOwnPushToken(userId: string, expoPushToken: string): Promise<void> {
