@@ -1,4 +1,4 @@
-import Constants, { AppOwnership } from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Device from 'expo-device';
 import { supabase } from './supabase';
 
@@ -7,21 +7,33 @@ import { supabase } from './supabase';
 // when running inside Expo Go. So this can't be a static top-level import;
 // `expo-notifications` is only require()'d lazily, and only outside Expo Go
 // (a real device build, or a custom dev client, both still support it fine).
-const isExpoGo = Constants.appOwnership === AppOwnership.Expo;
+//
+// `Constants.appOwnership === 'expo'` is the "obvious" check but is
+// deprecated and, in practice, unreliable for this — it stayed false inside
+// real Expo Go and let the crash through. `executionEnvironment` is the
+// actively-maintained replacement; 'storeClient' covers both Expo Go and a
+// expo-dev-client build, so as a second layer the require() below is also
+// wrapped in try/catch — belt and suspenders, since this must never crash.
+const isLikelyExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 let cachedNotifications: typeof import('expo-notifications') | null = null;
 function loadNotifications(): typeof import('expo-notifications') | null {
-  if (isExpoGo) return null;
+  if (isLikelyExpoGo) return null;
   if (!cachedNotifications) {
-    cachedNotifications = require('expo-notifications');
-    cachedNotifications!.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowBanner: true,
-        shouldShowList: true,
-        shouldPlaySound: false,
-        shouldSetBadge: false,
-      }),
-    });
+    try {
+      cachedNotifications = require('expo-notifications');
+      cachedNotifications!.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: false,
+          shouldSetBadge: false,
+        }),
+      });
+    } catch (e) {
+      console.warn('expo-notifications is unavailable in this runtime', e);
+      return null;
+    }
   }
   return cachedNotifications;
 }
@@ -34,7 +46,7 @@ function loadNotifications(): typeof import('expo-notifications') | null {
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   const Notifications = loadNotifications();
   if (!Notifications) {
-    if (isExpoGo) {
+    if (isLikelyExpoGo) {
       console.warn('Push notifications need a development build or standalone app — not supported in Expo Go since SDK 53.');
     }
     return null;
