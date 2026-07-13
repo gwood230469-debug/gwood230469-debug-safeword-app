@@ -53,7 +53,9 @@ function MemberRow({ member }: { member: CircleMember }) {
           style={styles.callIcon}
           onPress={() => Linking.openURL(`tel:${member.phoneNumber}`)}
         >
-          <Text style={styles.callIconText}>📞</Text>
+          <Text style={styles.callIconText} maxFontSizeMultiplier={1}>
+            📞
+          </Text>
         </Pressable>
       )}
     </View>

@@ -27,7 +27,9 @@ function SettingsRow({ label, onPress, isLast }: { label: string; onPress: () =>
       style={[styles.row, isLast && styles.rowLast]}
     >
       <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.chevron}>›</Text>
+      <Text style={styles.chevron} maxFontSizeMultiplier={1.3}>
+        ›
+      </Text>
     </Pressable>
   );
 }

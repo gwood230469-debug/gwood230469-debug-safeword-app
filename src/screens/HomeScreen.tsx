@@ -29,7 +29,9 @@ export function HomeScreen({ navigation }: Props) {
             style={styles.bellButton}
             onPress={() => navigation.navigate('Settings')}
           >
-            <Text style={styles.bellIcon}>🔔</Text>
+            <Text style={styles.bellIcon} maxFontSizeMultiplier={1}>
+              🔔
+            </Text>
           </Pressable>
         </View>
 
@@ -39,7 +41,9 @@ export function HomeScreen({ navigation }: Props) {
           style={({ pressed }) => [styles.ctaCard, pressed && styles.ctaCardPressed]}
         >
           <View style={styles.ctaIconChip}>
-            <Text style={styles.ctaIcon}>📞</Text>
+            <Text style={styles.ctaIcon} maxFontSizeMultiplier={1}>
+              📞
+            </Text>
           </View>
           <View style={styles.ctaTextWrap}>
             <Text style={styles.ctaTitle}>{copy.home.cta.title}</Text>
@@ -69,7 +73,9 @@ export function HomeScreen({ navigation }: Props) {
               style={styles.addMemberCircle}
               onPress={() => navigation.navigate('FamilyCircle')}
             >
-              <Text style={styles.addMemberPlus}>+</Text>
+              <Text style={styles.addMemberPlus} maxFontSizeMultiplier={1}>
+                +
+              </Text>
             </Pressable>
           }
         />
