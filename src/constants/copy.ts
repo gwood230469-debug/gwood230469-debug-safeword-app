@@ -21,11 +21,15 @@ export const copy = {
       title: 'Ask them to say your safe word first.',
       body: "Don't say it yourself, even if you're sure it's them.",
     },
+    picker: {
+      label: 'Who is this call about?',
+    },
     call: {
       button: (name: string) => `Call ${name} directly`,
     },
     loopin: {
-      button: 'Loop in someone else',
+      button: 'Ask someone else to help check',
+      modalTitle: 'Ask someone else',
     },
     footer: "If they can't say the word, hang up. That's okay — it doesn't need an explanation.",
   },
@@ -39,7 +43,7 @@ export const copy = {
     add: 'Add family member',
     addAnother: 'Add another',
     status: {
-      invited: 'Invited — waiting',
+      invited: "Invited — hasn't joined yet",
     },
     resend: 'Resend invite',
   },

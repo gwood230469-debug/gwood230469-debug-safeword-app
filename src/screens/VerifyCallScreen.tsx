@@ -11,7 +11,7 @@ import { useCircle } from '../context/CircleContext';
 import { useProfile } from '../context/ProfileContext';
 import { getPushToken, sendPushNotification } from '../lib/push';
 import { createLoopInEvent } from '../lib/verification';
-import { colors, spacing, typography } from '../theme/tokens';
+import { colors, lineHeight, radius, shadow, spacing, touchTarget, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 import { CircleMember } from '../types/models';
 
@@ -63,7 +63,7 @@ export function VerifyCallScreen({ navigation }: Props) {
           <Text style={styles.instructionBody}>{copy.verify.instruction.body}</Text>
         </Card>
 
-        <Text style={styles.sectionLabel}>Who is this about?</Text>
+        <Text style={styles.sectionLabel}>{copy.verify.picker.label}</Text>
         <View style={styles.memberPicker}>
           {confirmedMembers.map((member) => {
             const selected = selectedMember?.id === member.id;
@@ -112,13 +112,13 @@ export function VerifyCallScreen({ navigation }: Props) {
       <Modal visible={loopInPickerVisible} animationType="slide" transparent onRequestClose={() => setLoopInPickerVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Loop in someone else</Text>
+            <Text style={styles.modalTitle}>{copy.verify.loopin.modalTitle}</Text>
             <FlatList
               data={confirmedMembers.filter((m) => m.id !== selectedMember?.id)}
               keyExtractor={(m) => m.id}
               renderItem={({ item }) => (
                 <Pressable style={styles.modalRow} onPress={() => requestLoopIn(item)}>
-                  <Avatar name={item.displayName} size={44} />
+                  <Avatar name={item.displayName} size={touchTarget.minSize} />
                   <Text style={styles.modalRowText}>{item.displayName}</Text>
                 </Pressable>
               )}
@@ -138,6 +138,7 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: typography.title,
+    lineHeight: lineHeight.title,
     fontWeight: '700',
     color: colors.text,
     marginBottom: spacing.lg,
@@ -147,20 +148,24 @@ const styles = StyleSheet.create({
   },
   instructionTitle: {
     fontSize: typography.bodyLarge,
+    lineHeight: lineHeight.bodyLarge,
     fontWeight: '700',
     color: colors.text,
     marginBottom: spacing.xs,
   },
   instructionBody: {
     fontSize: typography.body,
+    lineHeight: lineHeight.body,
     color: colors.text,
   },
   sectionLabel: {
-    fontSize: typography.caption,
-    fontWeight: '600',
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    // Deliberately not uppercase/letter-spaced: all-caps small text is
+    // harder to read at a glance for low-vision users, so this leans on
+    // size and weight instead, at full (not muted) text contrast.
+    fontSize: typography.label,
+    lineHeight: lineHeight.label,
+    fontWeight: '700',
+    color: colors.text,
     marginBottom: spacing.sm,
   },
   memberPicker: {
@@ -170,25 +175,27 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   memberChip: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderRadius: 20,
+    borderRadius: radius.chip,
     borderWidth: 1.5,
     borderColor: colors.border,
-    minHeight: 44,
+    minHeight: touchTarget.minSize,
     justifyContent: 'center',
+    backgroundColor: colors.white,
   },
   memberChipSelected: {
     backgroundColor: colors.navy,
     borderColor: colors.navy,
   },
   memberChipText: {
-    fontSize: typography.body,
+    fontSize: typography.bodyLarge,
+    lineHeight: lineHeight.bodyLarge,
     color: colors.text,
   },
   memberChipTextSelected: {
     color: colors.white,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   callButton: {
     marginBottom: spacing.md,
@@ -201,10 +208,12 @@ const styles = StyleSheet.create({
   },
   confirmationText: {
     fontSize: typography.body,
+    lineHeight: lineHeight.body,
     color: colors.text,
   },
   footer: {
     fontSize: typography.body,
+    lineHeight: lineHeight.body,
     color: colors.textMuted,
     marginTop: spacing.md,
   },
@@ -219,9 +228,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     padding: spacing.lg,
     gap: spacing.md,
+    ...shadow.card,
   },
   modalTitle: {
     fontSize: typography.subtitle,
+    lineHeight: lineHeight.subtitle,
     fontWeight: '700',
     color: colors.text,
     marginBottom: spacing.sm,
@@ -231,9 +242,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.sm,
+    minHeight: touchTarget.minSize,
   },
   modalRowText: {
-    fontSize: typography.body,
+    fontSize: typography.bodyLarge,
+    lineHeight: lineHeight.bodyLarge,
     color: colors.text,
   },
 });

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from './Button';
 import { copy } from '../constants/copy';
-import { colors, radius, spacing, touchTarget, typography } from '../theme/tokens';
+import { colors, lineHeight, radius, spacing, touchTarget, typography } from '../theme/tokens';
 
 type Props = {
   headline: string;
@@ -85,12 +85,14 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: typography.title,
+    lineHeight: lineHeight.title,
     fontWeight: '700',
     color: colors.text,
     marginBottom: spacing.lg,
   },
   instruction: {
     fontSize: typography.bodyLarge,
+    lineHeight: lineHeight.bodyLarge,
     color: colors.text,
     marginBottom: spacing.lg,
   },
@@ -109,6 +111,7 @@ const styles = StyleSheet.create({
   },
   guidance: {
     fontSize: typography.caption,
+    lineHeight: lineHeight.caption,
     color: colors.textMuted,
     marginBottom: spacing.xl,
   },
@@ -117,7 +120,8 @@ const styles = StyleSheet.create({
   },
   savedNote: {
     fontSize: typography.body,
+    lineHeight: lineHeight.body,
     color: colors.sage,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

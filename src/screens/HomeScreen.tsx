@@ -7,7 +7,7 @@ import { ScreenContainer } from '../components/ScreenContainer';
 import { copy } from '../constants/copy';
 import { useCircle } from '../context/CircleContext';
 import { useProfile } from '../context/ProfileContext';
-import { colors, radius, spacing, typography } from '../theme/tokens';
+import { colors, lineHeight, radius, shadow, spacing, touchTarget, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -104,17 +104,18 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: typography.subtitle,
+    lineHeight: lineHeight.subtitle,
     fontWeight: '700',
     color: colors.text,
   },
   bellButton: {
-    minWidth: 44,
-    minHeight: 44,
+    minWidth: touchTarget.minSize,
+    minHeight: touchTarget.minSize,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bellIcon: {
-    fontSize: 22,
+    fontSize: 24,
   },
   ctaCard: {
     flexDirection: 'row',
@@ -123,21 +124,23 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     padding: spacing.lg,
     marginBottom: spacing.xl,
+    ...shadow.card,
+    shadowOpacity: 0.16,
   },
   ctaCardPressed: {
     backgroundColor: colors.navyDark,
   },
   ctaIconChip: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: colors.goldLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
   },
   ctaIcon: {
-    fontSize: 24,
+    fontSize: 26,
   },
   ctaTextWrap: {
     flex: 1,
@@ -145,19 +148,23 @@ const styles = StyleSheet.create({
   ctaTitle: {
     color: colors.white,
     fontSize: typography.subtitle,
+    lineHeight: lineHeight.subtitle,
     fontWeight: '700',
     marginBottom: 4,
   },
   ctaSubtitle: {
     color: colors.goldLight,
     fontSize: typography.body,
+    lineHeight: lineHeight.body,
   },
   sectionLabel: {
-    fontSize: typography.caption,
-    fontWeight: '600',
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    // Not uppercase/letter-spaced — see the matching note in
+    // VerifyCallScreen; all-caps small text hurts glanceability for
+    // low-vision readers more than it helps as a visual signpost.
+    fontSize: typography.label,
+    lineHeight: lineHeight.label,
+    fontWeight: '700',
+    color: colors.text,
     marginBottom: spacing.md,
   },
   circleRow: {
@@ -166,11 +173,12 @@ const styles = StyleSheet.create({
   },
   memberItem: {
     alignItems: 'center',
-    width: 72,
+    width: 76,
   },
   memberName: {
     marginTop: spacing.xs,
     fontSize: typography.caption,
+    lineHeight: lineHeight.caption,
     color: colors.text,
   },
   addMemberCircle: {
@@ -185,7 +193,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   addMemberPlus: {
-    fontSize: 26,
+    fontSize: 28,
     color: colors.navy,
   },
   digestCard: {
@@ -193,12 +201,14 @@ const styles = StyleSheet.create({
   },
   digestTitle: {
     fontSize: typography.body,
+    lineHeight: lineHeight.body,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
   digestSubtitle: {
     fontSize: typography.caption,
+    lineHeight: lineHeight.caption,
     color: colors.textMuted,
   },
 });

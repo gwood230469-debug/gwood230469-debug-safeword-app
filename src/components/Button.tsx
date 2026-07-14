@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
-import { colors, radius, spacing, touchTarget, typography } from '../theme/tokens';
+import { colors, lineHeight, radius, spacing, touchTarget, typography } from '../theme/tokens';
 
 type Variant = 'primary' | 'accent' | 'outline';
 
@@ -44,8 +44,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontSize: typography.body,
-    fontWeight: '600',
+    fontSize: typography.bodyLarge,
+    lineHeight: lineHeight.bodyLarge,
+    fontWeight: '700',
   },
   disabled: {
     opacity: 0.5,

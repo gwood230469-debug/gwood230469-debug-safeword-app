@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, ViewProps } from 'react-native';
-import { colors, radius, spacing } from '../theme/tokens';
+import { colors, radius, shadow, spacing } from '../theme/tokens';
 
 type CardProps = ViewProps & {
   accentBorder?: 'gold' | 'sage' | 'terracotta' | 'none';
@@ -34,5 +34,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
+    ...shadow.card,
   },
 });

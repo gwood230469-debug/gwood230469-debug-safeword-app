@@ -8,7 +8,7 @@ import { useCircle } from '../context/CircleContext';
 import { useProfile } from '../context/ProfileContext';
 import { getInviteTokenForMember } from '../lib/circle';
 import { shareInvite } from '../lib/invite';
-import { colors, spacing, touchTarget, typography } from '../theme/tokens';
+import { colors, lineHeight, spacing, touchTarget, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 import { CircleMember } from '../types/models';
 
@@ -86,6 +86,7 @@ function MemberRow({ member, onResend }: { member: CircleMember; onResend: (memb
 const styles = StyleSheet.create({
   header: {
     fontSize: typography.title,
+    lineHeight: lineHeight.title,
     fontWeight: '700',
     color: colors.text,
     marginTop: spacing.lg,
@@ -107,11 +108,13 @@ const styles = StyleSheet.create({
   },
   rowName: {
     fontSize: typography.bodyLarge,
+    lineHeight: lineHeight.bodyLarge,
     color: colors.text,
     fontWeight: '600',
   },
   rowStatus: {
     fontSize: typography.caption,
+    lineHeight: lineHeight.caption,
     color: colors.textMuted,
     marginTop: 2,
   },
@@ -122,7 +125,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   callIconText: {
-    fontSize: 22,
+    fontSize: 24,
   },
   resendButton: {
     minHeight: touchTarget.minSize,
@@ -131,8 +134,9 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: typography.body,
+    lineHeight: lineHeight.body,
     color: colors.navy,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   addRow: {
     marginTop: spacing.lg,
@@ -146,7 +150,8 @@ const styles = StyleSheet.create({
   },
   addRowText: {
     fontSize: typography.body,
+    lineHeight: lineHeight.body,
     color: colors.navy,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
