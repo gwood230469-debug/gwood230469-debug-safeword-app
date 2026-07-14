@@ -10,13 +10,9 @@ import { PendingInviteProvider, usePendingInvite } from './src/context/PendingIn
 import { ProfileProvider, useProfile } from './src/context/ProfileContext';
 import { claimInvite } from './src/lib/circle';
 import { registerForPushNotificationsAsync, saveOwnPushToken } from './src/lib/push';
-import { captureException, initSentry } from './src/lib/sentry';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { RootStackParamList } from './src/navigation/types';
 import { colors, spacing, typography } from './src/theme/tokens';
-
-// Once per app start, not per render — mirrors Notifications.setNotificationHandler in push.ts.
-initSentry();
 
 function Root() {
   const { session, loading: authLoading } = useAuth();
@@ -37,10 +33,7 @@ function Root() {
     const userId = session?.user.id;
     if (!userId) return;
     registerForPushNotificationsAsync().then((token) => {
-      if (token)
-        saveOwnPushToken(userId, token).catch((e) => {
-          captureException(e);
-        });
+      if (token) saveOwnPushToken(userId, token).catch(() => {});
     });
   }, [session?.user.id]);
 
@@ -54,11 +47,7 @@ function Root() {
     setClaimingInvite(true);
     claimInvite(pendingInviteToken)
       .then(() => refreshCircle(userId))
-      .catch((e) => {
-        // Invalid/expired invite: fall through to normal routing below, but
-        // still report it so it's not silently invisible to us.
-        captureException(e);
-      })
+      .catch(() => {})
       .finally(() => {
         clearPendingInvite();
         setClaimingInvite(false);

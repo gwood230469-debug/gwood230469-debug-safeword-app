@@ -3,13 +3,6 @@
 // ID), which static JSON can't reference.
 const googleIosUrlScheme = process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME;
 
-// Sentry's Expo config plugin (source map upload / native crash
-// symbolication) needs an org + project slug from the Sentry dashboard.
-// Only wire it in when both are present, so a dev/CI environment without a
-// Sentry project set up doesn't break the build.
-const sentryOrg = process.env.EXPO_PUBLIC_SENTRY_ORG;
-const sentryProject = process.env.EXPO_PUBLIC_SENTRY_PROJECT;
-
 module.exports = {
   expo: {
     name: 'SafeWord',
@@ -51,9 +44,6 @@ module.exports = {
       ['expo-notifications', { color: '#0F2A4A' }],
       googleIosUrlScheme
         ? ['@react-native-google-signin/google-signin', { iosUrlScheme: googleIosUrlScheme }]
-        : null,
-      sentryOrg && sentryProject
-        ? ['@sentry/react-native/expo', { organization: sentryOrg, project: sentryProject }]
         : null,
     ].filter(Boolean),
   },

@@ -9,7 +9,6 @@ import { usePendingInvite } from '../../context/PendingInviteContext';
 import { useProfile } from '../../context/ProfileContext';
 import { useAuth } from '../../context/AuthContext';
 import { claimInvite } from '../../lib/circle';
-import { captureException } from '../../lib/sentry';
 import { colors, radius, spacing, touchTarget, typography } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation/types';
 
@@ -38,10 +37,8 @@ export function NamePromptScreen({ route, navigation }: Props) {
       if (pendingInviteToken) {
         try {
           await claimInvite(pendingInviteToken);
-        } catch (e) {
-          // Invalid/expired invite: fall through to the normal new-circle
-          // flow, but still report it so it's not silently invisible to us.
-          captureException(e);
+        } catch {
+          // Invalid/expired invite: fall through to the normal new-circle flow.
         }
         clearPendingInvite();
       }
