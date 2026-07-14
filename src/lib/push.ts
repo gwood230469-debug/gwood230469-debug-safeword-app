@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { captureException } from './sentry';
 import { supabase } from './supabase';
 
 Notifications.setNotificationHandler({
@@ -39,6 +40,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     return data;
   } catch (e) {
     console.warn('Could not get an Expo push token', e);
+    captureException(e);
     return null;
   }
 }
@@ -73,5 +75,6 @@ export async function sendPushNotification(
     });
   } catch (e) {
     console.warn('Could not send push notification', e);
+    captureException(e);
   }
 }

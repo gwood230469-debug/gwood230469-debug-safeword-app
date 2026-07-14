@@ -1,13 +1,19 @@
 import * as Linking from 'expo-linking';
 import { Share } from 'react-native';
 
-// NOTE: this is a custom URL scheme (safeword://invite/<token>), which only
-// works if the app is already installed — tapping it with the app missing
-// just does nothing, rather than falling back to the App/Play Store listing
-// as the spec describes. That fallback needs a real https:// universal link
-// with a verified domain (apple-app-site-association / assetlinks.json),
-// which isn't set up yet. Worth revisiting once there's a domain to host it on.
+// If EXPO_PUBLIC_INVITE_LANDING_URL is set (pointing at wherever
+// web/invite-redirect/index.html is hosted — see that folder's README),
+// share an https:// link to that static landing page instead: it attempts
+// the safeword://invite/<token> deep link itself and falls back to Play/App
+// Store links if the app isn't installed. Without it, fall back to the bare
+// custom-scheme URL exactly as before — tapping it with the app missing
+// just does nothing, but that's the same behavior every caller already had.
 export function buildInviteUrl(token: string): string {
+  const landingBaseUrl = process.env.EXPO_PUBLIC_INVITE_LANDING_URL;
+  if (landingBaseUrl) {
+    const separator = landingBaseUrl.includes('?') ? '&' : '?';
+    return `${landingBaseUrl}${separator}token=${encodeURIComponent(token)}`;
+  }
   return Linking.createURL(`invite/${token}`);
 }
 

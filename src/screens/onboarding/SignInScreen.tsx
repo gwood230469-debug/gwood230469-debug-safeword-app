@@ -9,6 +9,7 @@ import { useCircle } from '../../context/CircleContext';
 import { usePendingInvite } from '../../context/PendingInviteContext';
 import { claimInvite } from '../../lib/circle';
 import { getOwnDisplayName } from '../../lib/profile';
+import { captureException } from '../../lib/sentry';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation/types';
 import { AuthProvider } from '../../types/models';
@@ -42,8 +43,10 @@ export function SignInScreen({ navigation }: Props) {
     if (pendingInviteToken) {
       try {
         await claimInvite(pendingInviteToken);
-      } catch {
-        // Invalid/expired invite: fall through to normal routing below.
+      } catch (e) {
+        // Invalid/expired invite: fall through to normal routing below, but
+        // still report it so it's not silently invisible to us.
+        captureException(e);
       }
       clearPendingInvite();
     }

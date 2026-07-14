@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
-import { FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '../components/Avatar';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { copy } from '../constants/copy';
@@ -19,8 +19,12 @@ export function FamilyCircleScreen({ navigation }: Props) {
   const { displayName } = useProfile();
 
   const onResend = async (member: CircleMember) => {
-    const token = await getInviteTokenForMember(member.id);
-    if (token) await shareInvite(displayName ?? 'Your family', member.displayName, token);
+    try {
+      const token = await getInviteTokenForMember(member.id);
+      if (token) await shareInvite(displayName ?? 'Your family', member.displayName, token);
+    } catch (e: any) {
+      Alert.alert('Could not resend invite', e?.message ?? 'Please try again.');
+    }
   };
 
   return (

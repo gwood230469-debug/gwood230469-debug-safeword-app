@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
-import { FlatList, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '../components/Avatar';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -17,6 +17,11 @@ import { CircleMember } from '../types/models';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VerifyCall'>;
 
+// Purely a client-side "don't let an accidental double-tap send two loop-in
+// requests to the same person" guard, not a security control — a member
+// selected within this window is filtered out of the picker.
+const LOOP_IN_COOLDOWN_MS = 60_000;
+
 export function VerifyCallScreen({ navigation }: Props) {
   const { session } = useAuth();
   const { displayName } = useProfile();
@@ -25,6 +30,7 @@ export function VerifyCallScreen({ navigation }: Props) {
   const [selectedMember, setSelectedMember] = useState<CircleMember | null>(null);
   const [loopInPickerVisible, setLoopInPickerVisible] = useState(false);
   const [loopInSentTo, setLoopInSentTo] = useState<string | null>(null);
+  const [recentLoopIns, setRecentLoopIns] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (!selectedMember && confirmedMembers.length > 0) {
@@ -38,17 +44,35 @@ export function VerifyCallScreen({ navigation }: Props) {
   };
 
   const requestLoopIn = async (member: CircleMember) => {
+    const userId = session?.user.id;
+    if (!circleId || !userId) return;
+
+    try {
+      await createLoopInEvent(circleId, userId);
+    } catch (e: any) {
+      Alert.alert('Could not send request', e?.message ?? 'Please try again.');
+      return;
+    }
+
+    setRecentLoopIns((prev) => {
+      const next = new Map(prev);
+      next.set(member.id, Date.now());
+      return next;
+    });
     setLoopInPickerVisible(false);
     setLoopInSentTo(member.displayName);
 
-    const userId = session?.user.id;
-    if (!circleId || !userId) return;
-    await createLoopInEvent(circleId, userId);
-
+    // Best-effort push notification: the VerificationEvent above is already
+    // the source of truth, so a failure here shouldn't affect the "sent"
+    // confirmation the user just saw.
     if (member.userId) {
-      const token = await getPushToken(member.userId);
-      if (token) {
-        await sendPushNotification(token, 'Family Circle', copy.loopin.notification(displayName ?? 'Someone in your circle'));
+      try {
+        const token = await getPushToken(member.userId);
+        if (token) {
+          await sendPushNotification(token, 'Family Circle', copy.loopin.notification(displayName ?? 'Someone in your circle'));
+        }
+      } catch (e) {
+        console.warn('Could not send loop-in push notification', e);
       }
     }
   };
@@ -114,7 +138,11 @@ export function VerifyCallScreen({ navigation }: Props) {
           <View style={styles.modalSheet}>
             <Text style={styles.modalTitle}>Loop in someone else</Text>
             <FlatList
-              data={confirmedMembers.filter((m) => m.id !== selectedMember?.id)}
+              data={confirmedMembers.filter((m) => {
+                if (m.id === selectedMember?.id) return false;
+                const lastLoopInAt = recentLoopIns.get(m.id);
+                return !lastLoopInAt || Date.now() - lastLoopInAt >= LOOP_IN_COOLDOWN_MS;
+              })}
               keyExtractor={(m) => m.id}
               renderItem={({ item }) => (
                 <Pressable style={styles.modalRow} onPress={() => requestLoopIn(item)}>

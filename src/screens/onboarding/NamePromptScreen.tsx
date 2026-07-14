@@ -9,6 +9,7 @@ import { usePendingInvite } from '../../context/PendingInviteContext';
 import { useProfile } from '../../context/ProfileContext';
 import { useAuth } from '../../context/AuthContext';
 import { claimInvite } from '../../lib/circle';
+import { captureException } from '../../lib/sentry';
 import { colors, radius, spacing, touchTarget, typography } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation/types';
 
@@ -17,6 +18,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingName'>;
 export function NamePromptScreen({ route, navigation }: Props) {
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { createProfile } = useProfile();
   const { session } = useAuth();
   const { refresh: refreshCircle } = useCircle();
@@ -27,25 +29,33 @@ export function NamePromptScreen({ route, navigation }: Props) {
     const userId = session?.user.id;
     if (!trimmed || !userId) return;
     setSaving(true);
-    await createProfile(trimmed, route.params.authProvider);
+    setError(null);
+    try {
+      await createProfile(trimmed, route.params.authProvider);
 
-    // A pending invite link (someone shared this app with them) means they're
-    // joining an existing circle, not starting a brand new one.
-    if (pendingInviteToken) {
-      try {
-        await claimInvite(pendingInviteToken);
-      } catch {
-        // Invalid/expired invite: fall through to the normal new-circle flow.
+      // A pending invite link (someone shared this app with them) means they're
+      // joining an existing circle, not starting a brand new one.
+      if (pendingInviteToken) {
+        try {
+          await claimInvite(pendingInviteToken);
+        } catch (e) {
+          // Invalid/expired invite: fall through to the normal new-circle
+          // flow, but still report it so it's not silently invisible to us.
+          captureException(e);
+        }
+        clearPendingInvite();
       }
-      clearPendingInvite();
-    }
-    const { circleId } = await refreshCircle(userId);
-    setSaving(false);
+      const { circleId } = await refreshCircle(userId);
 
-    navigation.reset({
-      index: 0,
-      routes: [{ name: circleId ? 'Home' : 'OnboardingAddMembers' }],
-    });
+      navigation.reset({
+        index: 0,
+        routes: [{ name: circleId ? 'Home' : 'OnboardingAddMembers' }],
+      });
+    } catch (e: any) {
+      setError(e?.message ?? 'Could not save your name. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -62,6 +72,8 @@ export function NamePromptScreen({ route, navigation }: Props) {
           style={styles.input}
           accessibilityLabel="Your first name"
         />
+
+        {error && <Text style={styles.error}>⚠ {error}</Text>}
 
         <Button
           label={saving ? 'Saving…' : 'Continue'}
@@ -94,6 +106,11 @@ const styles = StyleSheet.create({
     fontSize: typography.bodyLarge,
     color: colors.text,
     backgroundColor: colors.white,
+    marginBottom: spacing.md,
+  },
+  error: {
+    fontSize: typography.body,
+    color: colors.text,
     marginBottom: spacing.md,
   },
 });

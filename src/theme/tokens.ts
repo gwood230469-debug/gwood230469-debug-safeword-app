@@ -14,7 +14,7 @@ export const colors = {
 } as const;
 
 export const typography = {
-  fontFamily: undefined, // Inter is loaded via expo-font in App.tsx; falls back to system default until then
+  fontFamily: undefined, // No custom font loaded yet — system default. Wire up expo-font + an Inter asset here if/when brand typography matters.
   body: 17,
   bodyLarge: 18,
   title: 28,

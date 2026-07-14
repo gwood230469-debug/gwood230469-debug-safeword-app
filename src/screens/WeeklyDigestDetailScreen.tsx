@@ -1,15 +1,44 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../components/ScreenContainer';
-import { mockDigestItems } from '../data/mock';
+import { getDigestItem } from '../lib/digest';
 import { colors, spacing, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
+import { DigestItem } from '../types/models';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WeeklyDigestDetail'>;
 
 export function WeeklyDigestDetailScreen({ route }: Props) {
-  const item = mockDigestItems.find((d) => d.id === route.params.itemId);
+  const [item, setItem] = useState<DigestItem | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getDigestItem(route.params.itemId)
+      .then((data) => {
+        if (!cancelled) setItem(data);
+      })
+      .catch(() => {
+        if (!cancelled) setItem(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [route.params.itemId]);
+
+  if (loading) {
+    return (
+      <ScreenContainer>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.navy} />
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   if (!item) {
     return (
@@ -30,6 +59,11 @@ export function WeeklyDigestDetailScreen({ route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   scrollContent: {
     paddingTop: spacing.lg,
     paddingBottom: spacing.xxl,
