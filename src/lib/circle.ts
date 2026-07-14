@@ -55,13 +55,19 @@ export async function getOwnCircleState(userId: string): Promise<OwnCircleState>
   return { role: 'none' };
 }
 
-// The live "circles" RLS policy (with check (created_by = auth.uid())) is
-// confirmed correct against migration 0006 — a reproducible "new row
-// violates row-level security policy" error here despite that means auth.uid()
-// isn't resolving to `userId` for this specific request. Check the client's
-// own view of its session immediately before inserting, so a real failure
-// reports *why* (no session yet vs. a different signed-in user) instead of
-// Postgres's generic RLS message, which doesn't distinguish the two.
+// ROOT CAUSE FOUND (via migration 0008_debug_whoami.sql): auth.uid() was
+// always resolving correctly — a whoami() RPC call proved the server-side
+// identity matched `userId` exactly on every failing attempt. The real
+// culprit is a PostgreSQL/RLS interaction: `.insert(...).select().single()`
+// issues INSERT ... RETURNING, which requires the new row to *also* satisfy
+// a SELECT policy so it can be returned. That SELECT policy
+// (is_circle_member -> is_circle_creator, a `stable` security-definer
+// function) can evaluate against a pre-insert snapshot within the same
+// statement, so it doesn't yet see the row this same INSERT just created —
+// producing the exact same "new row violates row-level security policy"
+// text as a genuine WITH CHECK failure, despite the insert itself being
+// perfectly allowed. Splitting the insert and the read-back into two
+// separate statements avoids the same-statement snapshot issue entirely.
 export async function createCircle(userId: string): Promise<string> {
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) {
@@ -71,29 +77,17 @@ export async function createCircle(userId: string): Promise<string> {
     throw new Error('The signed-in account changed — please restart the app and try again.');
   }
 
-  const { data, error } = await supabase
+  const { error: insertError } = await supabase.from('circles').insert({ created_by: userId });
+  if (insertError) throw insertError;
+
+  const { data, error: selectError } = await supabase
     .from('circles')
-    .insert({ created_by: userId })
     .select('id')
+    .eq('created_by', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .single();
-  if (error) {
-    // The client-side checks above passed, so the client believes it has a
-    // valid, matching session — if this still fails, something is wrong
-    // between what the client thinks and what the server actually sees on
-    // this specific request. Ask the server directly what it thinks auth.uid()
-    // is right now (see migration 0008_debug_whoami.sql — a temporary,
-    // security-invoker function so it reflects the real request, not a
-    // service-role bypass) and fold that into the error so it's visible
-    // on-screen without needing Supabase dashboard access.
-    let whoamiInfo = 'whoami check failed too';
-    try {
-      const { data: whoamiData, error: whoamiError } = await supabase.rpc('whoami');
-      whoamiInfo = whoamiError ? `whoami errored: ${whoamiError.message}` : `server sees auth.uid() = ${whoamiData ?? 'null'}`;
-    } catch (whoamiCatchError: any) {
-      whoamiInfo = `whoami threw: ${whoamiCatchError?.message ?? 'unknown'}`;
-    }
-    throw new Error(`${error.message} [debug: expected ${userId}, ${whoamiInfo}]`);
-  }
+  if (selectError) throw selectError;
   return data.id;
 }
 
