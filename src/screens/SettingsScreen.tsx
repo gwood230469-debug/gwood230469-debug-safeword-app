@@ -4,6 +4,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { copy } from '../constants/copy';
 import { useAuth } from '../context/AuthContext';
+import { getErrorMessage } from '../lib/errors';
 import { colors, spacing, touchTarget, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
 
@@ -16,8 +17,8 @@ export function SettingsScreen({ navigation }: Props) {
     try {
       await signOut();
       navigation.reset({ index: 0, routes: [{ name: 'OnboardingSignIn' }] });
-    } catch (e: any) {
-      Alert.alert('Could not sign out', e?.message ?? 'Please try again.');
+    } catch (e: unknown) {
+      Alert.alert('Could not sign out', getErrorMessage(e, 'Please try again.'));
     }
   };
 

@@ -2,6 +2,7 @@ import { Session } from '@supabase/supabase-js';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { getErrorCode, getErrorMessage } from '../lib/errors';
 import { supabase } from '../lib/supabase';
 
 GoogleSignin.configure({
@@ -23,10 +24,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setSession(data.session);
+      })
+      .catch(() => {
+        setSession(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
@@ -55,9 +63,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             token: credential.identityToken,
           });
           return { error: error?.message ?? null, userId: data.user?.id ?? null };
-        } catch (e: any) {
-          if (e?.code === 'ERR_REQUEST_CANCELED') return { error: null, userId: null };
-          return { error: e?.message ?? 'Apple sign-in failed.', userId: null };
+        } catch (e: unknown) {
+          if (getErrorCode(e) === 'ERR_REQUEST_CANCELED') return { error: null, userId: null };
+          return { error: getErrorMessage(e, 'Apple sign-in failed.'), userId: null };
         }
       },
       signInWithGoogle: async () => {
@@ -72,8 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             token: response.data.idToken,
           });
           return { error: error?.message ?? null, userId: data.user?.id ?? null };
-        } catch (e: any) {
-          return { error: e?.message ?? 'Google sign-in failed.', userId: null };
+        } catch (e: unknown) {
+          return { error: getErrorMessage(e, 'Google sign-in failed.'), userId: null };
         }
       },
       signOut: async () => {

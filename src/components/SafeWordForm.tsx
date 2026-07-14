@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from './Button';
 import { copy } from '../constants/copy';
+import { getErrorMessage } from '../lib/errors';
 import { colors, radius, spacing, touchTarget, typography } from '../theme/tokens';
 
 type Props = {
@@ -27,8 +28,8 @@ export function SafeWordForm({ headline, savedMessage, saveLabel, onSaved }: Pro
     try {
       await onSaved(value.trim());
       setSaved(true);
-    } catch (e: any) {
-      setError(e?.message ?? 'Could not save your safe word. Please try again.');
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, 'Could not save your safe word. Please try again.'));
     } finally {
       setSaving(false);
     }

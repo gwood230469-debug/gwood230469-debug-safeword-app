@@ -9,6 +9,7 @@ import { usePendingInvite } from '../../context/PendingInviteContext';
 import { useProfile } from '../../context/ProfileContext';
 import { useAuth } from '../../context/AuthContext';
 import { claimInvite } from '../../lib/circle';
+import { getErrorMessage } from '../../lib/errors';
 import { colors, radius, spacing, touchTarget, typography } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation/types';
 
@@ -48,8 +49,8 @@ export function NamePromptScreen({ route, navigation }: Props) {
         index: 0,
         routes: [{ name: circleId ? 'Home' : 'OnboardingAddMembers' }],
       });
-    } catch (e: any) {
-      setError(e?.message ?? 'Could not save your name. Please try again.');
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, 'Could not save your name. Please try again.'));
     } finally {
       setSaving(false);
     }

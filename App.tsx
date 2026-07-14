@@ -24,7 +24,7 @@ function Root() {
     error: circleError,
     refresh: refreshCircle,
   } = useCircle();
-  const { loading: profileLoading, displayName } = useProfile();
+  const { loading: profileLoading, displayName, error: profileError, refresh: refreshProfile } = useProfile();
   const { token: pendingInviteToken, clear: clearPendingInvite } = usePendingInvite();
   const [claimingInvite, setClaimingInvite] = useState(false);
   const claimAttempted = useRef(false);
@@ -32,9 +32,14 @@ function Root() {
   useEffect(() => {
     const userId = session?.user.id;
     if (!userId) return;
-    registerForPushNotificationsAsync().then((token) => {
-      if (token) saveOwnPushToken(userId, token).catch(() => {});
-    });
+    // Best-effort: push notifications are a nice-to-have, so a failure here
+    // (permission prompt rejected, no EAS project id, a transient native
+    // error) should never surface to the user or go unhandled.
+    registerForPushNotificationsAsync()
+      .then((token) => {
+        if (token) saveOwnPushToken(userId, token).catch(() => {});
+      })
+      .catch(() => {});
   }, [session?.user.id]);
 
   // Already signed in (this device was used before, or is mid-session) and an
@@ -63,14 +68,22 @@ function Root() {
   }
 
   // Loading finished but refresh() hit an error (e.g. a Supabase/RLS
-  // failure) rather than genuinely finding "no circle yet" — surface it
-  // instead of silently falling through to the onboarding flow.
-  if (circleId === null && members.length === 0 && circleError) {
+  // failure) rather than genuinely finding "no circle yet"/"no profile yet"
+  // — surface it instead of silently falling through to the onboarding flow.
+  const circleFailed = circleId === null && members.length === 0 && circleError;
+  if (circleFailed || profileError) {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.errorTitle}>Something went wrong</Text>
-        <Text style={styles.errorText}>{circleError}</Text>
-        <Button label="Try again" onPress={() => refreshCircle()} style={styles.retryButton} />
+        <Text style={styles.errorText}>{circleFailed ? circleError : profileError}</Text>
+        <Button
+          label="Try again"
+          onPress={() => {
+            refreshProfile();
+            refreshCircle();
+          }}
+          style={styles.retryButton}
+        />
       </View>
     );
   }

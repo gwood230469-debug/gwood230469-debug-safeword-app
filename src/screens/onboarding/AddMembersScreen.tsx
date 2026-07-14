@@ -6,6 +6,7 @@ import { ScreenContainer } from '../../components/ScreenContainer';
 import { copy } from '../../constants/copy';
 import { useCircle } from '../../context/CircleContext';
 import { useProfile } from '../../context/ProfileContext';
+import { getErrorMessage } from '../../lib/errors';
 import { normalizePhoneNumber } from '../../lib/phone';
 import { shareInvite } from '../../lib/invite';
 import { colors, radius, spacing, touchTarget, typography } from '../../theme/tokens';
@@ -27,13 +28,27 @@ export function AddMembersScreen({ navigation }: Props) {
     const normalizedPhone = phoneNumber.trim() ? normalizePhoneNumber(phoneNumber) : null;
     setSaving(true);
     setError(null);
+
+    let inviteToken: string;
     try {
-      const { inviteToken } = await addMember(trimmedName, normalizedPhone);
+      const invite = await addMember(trimmedName, normalizedPhone);
+      inviteToken = invite.inviteToken;
       setName('');
       setPhoneNumber('');
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, 'Could not add that family member.'));
+      setSaving(false);
+      return;
+    }
+
+    // The member row above was already saved successfully — a failure from
+    // here on is only about sharing the link, so it shouldn't read as "adding
+    // them failed" (they'll still show up in the list; "Resend invite" covers
+    // this same share-sheet action later).
+    try {
       await shareInvite(displayName ?? 'Your family', trimmedName, inviteToken);
-    } catch (e: any) {
-      setError(e?.message ?? 'Could not add that family member.');
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Added — but couldn't open the share sheet for their invite link. Use Resend invite to try again."));
     } finally {
       setSaving(false);
     }

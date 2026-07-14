@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Card } from '../components/Card';
 import { ScreenContainer } from '../components/ScreenContainer';
+import { getErrorMessage } from '../lib/errors';
 import { listDigestItems } from '../lib/digest';
 import { colors, spacing, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
@@ -21,8 +22,8 @@ export function WeeklyDigestScreen({ navigation }: Props) {
       .then((data) => {
         if (!cancelled) setItems(data);
       })
-      .catch((e: any) => {
-        if (!cancelled) setError(e?.message ?? 'Could not load the weekly digest.');
+      .catch((e: unknown) => {
+        if (!cancelled) setError(getErrorMessage(e, 'Could not load the weekly digest.'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

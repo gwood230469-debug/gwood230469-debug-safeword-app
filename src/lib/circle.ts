@@ -1,14 +1,26 @@
 import { supabase } from './supabase';
 import { CircleMember, MemberStatus } from '../types/models';
 
-function fromRow(row: any): CircleMember {
+// Mirrors circle_members' columns (see supabase/migrations/0006_oauth_reset.sql).
+type CircleMemberRow = {
+  id: string;
+  circle_id: string;
+  user_id: string | null;
+  phone_number: string | null;
+  display_name: string;
+  status: MemberStatus;
+  invited_at: string;
+  confirmed_at: string | null;
+};
+
+function fromRow(row: CircleMemberRow): CircleMember {
   return {
     id: row.id,
     circleId: row.circle_id,
     userId: row.user_id,
     phoneNumber: row.phone_number,
     displayName: row.display_name,
-    status: row.status as MemberStatus,
+    status: row.status,
     invitedAt: row.invited_at,
     confirmedAt: row.confirmed_at,
   };

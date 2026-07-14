@@ -9,6 +9,7 @@ import { copy } from '../constants/copy';
 import { useAuth } from '../context/AuthContext';
 import { useCircle } from '../context/CircleContext';
 import { useProfile } from '../context/ProfileContext';
+import { getErrorMessage } from '../lib/errors';
 import { getPushToken, sendPushNotification } from '../lib/push';
 import { createLoopInEvent } from '../lib/verification';
 import { colors, spacing, typography } from '../theme/tokens';
@@ -49,8 +50,8 @@ export function VerifyCallScreen({ navigation }: Props) {
 
     try {
       await createLoopInEvent(circleId, userId);
-    } catch (e: any) {
-      Alert.alert('Could not send request', e?.message ?? 'Please try again.');
+    } catch (e: unknown) {
+      Alert.alert('Could not send request', getErrorMessage(e, 'Please try again.'));
       return;
     }
 

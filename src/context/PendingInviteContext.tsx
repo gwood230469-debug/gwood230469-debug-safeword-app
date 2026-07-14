@@ -13,11 +13,13 @@ export function PendingInviteProvider({ children }: { children: React.ReactNode 
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    Linking.getInitialURL().then((url) => {
-      if (!url) return;
-      const parsed = parseInviteToken(url);
-      if (parsed) setToken(parsed);
-    });
+    Linking.getInitialURL()
+      .then((url) => {
+        if (!url) return;
+        const parsed = parseInviteToken(url);
+        if (parsed) setToken(parsed);
+      })
+      .catch(() => {});
 
     const subscription = Linking.addEventListener('url', ({ url }) => {
       const parsed = parseInviteToken(url);

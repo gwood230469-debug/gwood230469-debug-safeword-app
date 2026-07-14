@@ -8,6 +8,7 @@ import {
   safeWordExists,
   setSafeWord as setSafeWordRow,
 } from '../lib/circle';
+import { getErrorMessage } from '../lib/errors';
 import { hashSafeWord } from '../lib/safeWordHash';
 import { CircleMember } from '../types/models';
 import { useAuth } from './AuthContext';
@@ -73,8 +74,8 @@ export function CircleProvider({ children }: { children: React.ReactNode }) {
           hasSafeWord: wordExists,
           hasConfirmedMember: memberRows.some((m) => m.status === 'confirmed'),
         };
-      } catch (e: any) {
-        setError(e?.message ?? 'Could not load your circle.');
+      } catch (e: unknown) {
+        setError(getErrorMessage(e, 'Could not load your circle.'));
         setCircleId(null);
         setMembers([]);
         setHasSafeWord(false);
