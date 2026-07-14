@@ -43,7 +43,22 @@ export async function getOwnCircleState(userId: string): Promise<OwnCircleState>
   return { role: 'none' };
 }
 
+// The live "circles" RLS policy (with check (created_by = auth.uid())) is
+// confirmed correct against migration 0006 — a reproducible "new row
+// violates row-level security policy" error here despite that means auth.uid()
+// isn't resolving to `userId` for this specific request. Check the client's
+// own view of its session immediately before inserting, so a real failure
+// reports *why* (no session yet vs. a different signed-in user) instead of
+// Postgres's generic RLS message, which doesn't distinguish the two.
 export async function createCircle(userId: string): Promise<string> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) {
+    throw new Error("Your sign-in isn't ready yet — please wait a moment and try again.");
+  }
+  if (sessionData.session.user.id !== userId) {
+    throw new Error('The signed-in account changed — please restart the app and try again.');
+  }
+
   const { data, error } = await supabase
     .from('circles')
     .insert({ created_by: userId })
