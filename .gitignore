@@ -21,6 +21,9 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
+# Claude Flow / ruflo runtime state
+.swarm/
+
 # debug
 npm-debug.*
 yarn-debug.*
