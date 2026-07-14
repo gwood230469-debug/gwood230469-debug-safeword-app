@@ -76,7 +76,24 @@ export async function createCircle(userId: string): Promise<string> {
     .insert({ created_by: userId })
     .select('id')
     .single();
-  if (error) throw error;
+  if (error) {
+    // The client-side checks above passed, so the client believes it has a
+    // valid, matching session — if this still fails, something is wrong
+    // between what the client thinks and what the server actually sees on
+    // this specific request. Ask the server directly what it thinks auth.uid()
+    // is right now (see migration 0008_debug_whoami.sql — a temporary,
+    // security-invoker function so it reflects the real request, not a
+    // service-role bypass) and fold that into the error so it's visible
+    // on-screen without needing Supabase dashboard access.
+    let whoamiInfo = 'whoami check failed too';
+    try {
+      const { data: whoamiData, error: whoamiError } = await supabase.rpc('whoami');
+      whoamiInfo = whoamiError ? `whoami errored: ${whoamiError.message}` : `server sees auth.uid() = ${whoamiData ?? 'null'}`;
+    } catch (whoamiCatchError: any) {
+      whoamiInfo = `whoami threw: ${whoamiCatchError?.message ?? 'unknown'}`;
+    }
+    throw new Error(`${error.message} [debug: expected ${userId}, ${whoamiInfo}]`);
+  }
   return data.id;
 }
 
