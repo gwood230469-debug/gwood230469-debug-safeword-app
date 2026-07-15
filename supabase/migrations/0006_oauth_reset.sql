@@ -21,6 +21,15 @@ drop function if exists caller_phone_number();
 
 create extension if not exists "pgcrypto";
 
+-- Newer Supabase projects install extensions into a dedicated "extensions"
+-- schema rather than "public" (where this project's pgcrypto has lived
+-- since it predates that convention). gen_random_bytes() below needs to
+-- resolve either way — searching both schemas is safe even if one of them
+-- doesn't exist (an absent schema in search_path is silently ignored, not
+-- an error), so this works whether the extension lives in public (this
+-- project) or extensions (a fresh project created later).
+set search_path = public, extensions;
+
 -- ── profiles ─────────────────────────────────────────────────────────────
 -- One row per signed-in user. Created client-side right after their first
 -- Apple/Google sign-in, once they've entered a display name.
