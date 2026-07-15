@@ -19,9 +19,14 @@ export function buildInviteUrl(token: string): string {
 
 export async function shareInvite(circleOwnerName: string, memberName: string, token: string): Promise<void> {
   const url = buildInviteUrl(token);
+  // Only `message` is set (with the URL embedded in the text) — Android's
+  // Share module has a known issue where providing both `message` and a
+  // separate `url` at the same time can corrupt the resulting text (a stray
+  // "]" character has been observed appearing right before the link in
+  // WhatsApp). `message` alone works correctly on both platforms since the
+  // URL is already part of the text.
   await Share.share({
     message: `${circleOwnerName} wants you to join their family circle on SafeWord — it's how you'll both know a call is really the other person, not a scam. Tap to join, ${memberName}: ${url}`,
-    url,
   });
 }
 
