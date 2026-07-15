@@ -5,7 +5,36 @@ computer's Metro server over WiFi, which is why closing a terminal or
 changing networks breaks it. This guide covers building a real, standalone
 app file that installs and runs on its own, with no computer involved.
 
-## 1. Build an installable APK (Android)
+## 1. Give the cloud build your environment variables first
+
+**Do this before your first build, or the app will install fine but crash
+immediately on open.** Locally, your `.env` file supplies things like the
+Supabase URL and anon key — but `eas build` runs on Expo's own servers,
+which never see your local `.env` file. Without these set, the app tries
+to connect to a blank/missing backend address and crashes on launch.
+
+Open your `.env` file and push each value to EAS (the values below are
+examples — use your own file's actual values):
+
+```
+npx eas env:create --scope project --name EXPO_PUBLIC_SUPABASE_URL --value "https://your-project.supabase.co" --environment preview --visibility plaintext
+npx eas env:create --scope project --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "your-anon-key" --environment preview --visibility plaintext
+npx eas env:create --scope project --name EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID --value "your-web-client-id.apps.googleusercontent.com" --environment preview --visibility plaintext
+npx eas env:create --scope project --name EXPO_PUBLIC_INVITE_LANDING_URL --value "https://your-github-pages-url/web/invite-redirect/" --environment preview --visibility plaintext
+```
+
+("Plaintext" is fine for all of these — none of them are actual secrets;
+the `EXPO_PUBLIC_` prefix itself means they're meant to be embedded in the
+client and visible to anyone using the app.)
+
+If you ever need to change one later, use `eas env:update` (same flags)
+instead of `env:create` — `create` fails if a variable with that name
+already exists for that environment.
+
+Repeat this whole section for the `production` environment too, once
+you're building with the `production` profile instead of `preview`.
+
+## 2. Build an installable APK (Android)
 
 This repo already has an `eas.json` "preview" profile set up for exactly
 this — an "internal distribution" build, meaning EAS gives you a private
@@ -21,7 +50,7 @@ an `.apk` file. Share that link (or the QR code EAS shows) with anyone —
 they tap it, allow "install from unknown sources" if Android asks, and the
 app installs like any other app. No Metro, no computer needed.
 
-## 2. The Google Sign-In gotcha
+## 3. The Google Sign-In gotcha
 
 **Google Sign-In will likely fail in this build even though it worked in
 your dev client.** This is the single most common surprise with this kind
@@ -44,7 +73,7 @@ Fix, one-time:
 3. Give it a few minutes to propagate, then try signing in again in the
    new build.
 
-## 3. iOS
+## 4. iOS
 
 Apple Sign-In needs an actual Apple Developer account ($99/year) before any
 iOS build can be produced or installed on a real iPhone — there's no free
@@ -52,7 +81,7 @@ iOS build can be produced or installed on a real iPhone — there's no free
 that's set up; Android alone is enough to keep testing with family members
 in the meantime.
 
-## 4. When you're ready for the Play Store / App Store properly
+## 5. When you're ready for the Play Store / App Store properly
 
 That's a separate, bigger step (store listing, screenshots, privacy policy
 page, content rating questionnaire) — worth doing once the app has had more
