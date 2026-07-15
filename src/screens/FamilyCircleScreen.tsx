@@ -1,12 +1,13 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
-import { FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '../components/Avatar';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { copy } from '../constants/copy';
 import { useCircle } from '../context/CircleContext';
 import { useProfile } from '../context/ProfileContext';
 import { getInviteTokenForMember } from '../lib/circle';
+import { getErrorMessage } from '../lib/errors';
 import { shareInvite } from '../lib/invite';
 import { colors, spacing, touchTarget, typography } from '../theme/tokens';
 import { RootStackParamList } from '../navigation/types';
@@ -19,8 +20,19 @@ export function FamilyCircleScreen({ navigation }: Props) {
   const { displayName } = useProfile();
 
   const onResend = async (member: CircleMember) => {
-    const token = await getInviteTokenForMember(member.id);
-    if (token) await shareInvite(displayName ?? 'Your family', member.displayName, token);
+    try {
+      const token = await getInviteTokenForMember(member.id);
+      if (!token) {
+        Alert.alert(
+          'Could not resend invite',
+          "We couldn't find an active invite link for this person. Please try again in a moment."
+        );
+        return;
+      }
+      await shareInvite(displayName ?? 'Your family', member.displayName, token);
+    } catch (e: unknown) {
+      Alert.alert('Could not resend invite', getErrorMessage(e, 'Please try again.'));
+    }
   };
 
   return (

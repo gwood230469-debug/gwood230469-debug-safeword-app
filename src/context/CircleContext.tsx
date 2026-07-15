@@ -8,6 +8,7 @@ import {
   safeWordExists,
   setSafeWord as setSafeWordRow,
 } from '../lib/circle';
+import { getErrorMessage } from '../lib/errors';
 import { hashSafeWord } from '../lib/safeWordHash';
 import { CircleMember } from '../types/models';
 import { useAuth } from './AuthContext';
@@ -19,6 +20,7 @@ type CircleContextValue = {
   circleId: string | null;
   members: CircleMember[];
   hasSafeWord: boolean;
+  error: string | null;
   // Accepts an optional userId override for callers (like right after sign-in)
   // that know the correct id before AuthContext's session state has
   // necessarily propagated through a re-render yet.
@@ -38,9 +40,11 @@ export function CircleProvider({ children }: { children: React.ReactNode }) {
   const [circleId, setCircleId] = useState<string | null>(null);
   const [members, setMembers] = useState<CircleMember[]>([]);
   const [hasSafeWord, setHasSafeWord] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(
     async (overrideUserId?: string): Promise<RefreshResult> => {
+      setError(null);
       const effectiveUserId = overrideUserId ?? userId;
       if (!effectiveUserId) {
         setCircleId(null);
@@ -50,27 +54,35 @@ export function CircleProvider({ children }: { children: React.ReactNode }) {
         return { circleId: null, hasSafeWord: false, hasConfirmedMember: false };
       }
       setLoading(true);
-      const state = await getOwnCircleState(effectiveUserId);
-      if (state.role === 'none') {
+      try {
+        const state = await getOwnCircleState(effectiveUserId);
+        if (state.role === 'none') {
+          setCircleId(null);
+          setMembers([]);
+          setHasSafeWord(false);
+          return { circleId: null, hasSafeWord: false, hasConfirmedMember: false };
+        }
+        const [memberRows, wordExists] = await Promise.all([
+          listMembers(state.circleId),
+          safeWordExists(state.circleId),
+        ]);
+        setCircleId(state.circleId);
+        setMembers(memberRows);
+        setHasSafeWord(wordExists);
+        return {
+          circleId: state.circleId,
+          hasSafeWord: wordExists,
+          hasConfirmedMember: memberRows.some((m) => m.status === 'confirmed'),
+        };
+      } catch (e: unknown) {
+        setError(getErrorMessage(e, 'Could not load your circle.'));
         setCircleId(null);
         setMembers([]);
         setHasSafeWord(false);
-        setLoading(false);
         return { circleId: null, hasSafeWord: false, hasConfirmedMember: false };
+      } finally {
+        setLoading(false);
       }
-      const [memberRows, wordExists] = await Promise.all([
-        listMembers(state.circleId),
-        safeWordExists(state.circleId),
-      ]);
-      setCircleId(state.circleId);
-      setMembers(memberRows);
-      setHasSafeWord(wordExists);
-      setLoading(false);
-      return {
-        circleId: state.circleId,
-        hasSafeWord: wordExists,
-        hasConfirmedMember: memberRows.some((m) => m.status === 'confirmed'),
-      };
     },
     [userId]
   );
@@ -113,6 +125,7 @@ export function CircleProvider({ children }: { children: React.ReactNode }) {
     circleId,
     members,
     hasSafeWord,
+    error,
     refresh,
     ensureOwnCircle,
     addMember,

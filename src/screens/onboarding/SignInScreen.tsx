@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCircle } from '../../context/CircleContext';
 import { usePendingInvite } from '../../context/PendingInviteContext';
 import { claimInvite } from '../../lib/circle';
+import { getErrorMessage } from '../../lib/errors';
 import { getOwnDisplayName } from '../../lib/profile';
 import { colors, radius, spacing, typography } from '../../theme/tokens';
 import { RootStackParamList } from '../../navigation/types';
@@ -62,16 +63,28 @@ export function SignInScreen({ navigation }: Props) {
     }
   };
 
+  // afterSignIn does a raw (un-caught) getOwnDisplayName() lookup before any
+  // try/catch of its own — without one here, a Supabase failure at that
+  // point would silently strand the user on this screen with no feedback
+  // (no error shown, no navigation) instead of surfacing as a retryable error.
   const onApplePress = async () => {
     setError(null);
-    const { error: signInError, userId } = await signInWithApple();
-    await afterSignIn('apple', signInError, userId);
+    try {
+      const { error: signInError, userId } = await signInWithApple();
+      await afterSignIn('apple', signInError, userId);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, 'Could not finish signing in. Please try again.'));
+    }
   };
 
   const onGooglePress = async () => {
     setError(null);
-    const { error: signInError, userId } = await signInWithGoogle();
-    await afterSignIn('google', signInError, userId);
+    try {
+      const { error: signInError, userId } = await signInWithGoogle();
+      await afterSignIn('google', signInError, userId);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, 'Could not finish signing in. Please try again.'));
+    }
   };
 
   return (

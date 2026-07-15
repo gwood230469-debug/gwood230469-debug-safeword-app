@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from './Button';
 import { copy } from '../constants/copy';
+import { getErrorMessage } from '../lib/errors';
 import { colors, radius, spacing, touchTarget, typography } from '../theme/tokens';
 
 type Props = {
@@ -16,15 +17,22 @@ export function SafeWordForm({ headline, savedMessage, saveLabel, onSaved }: Pro
   const [value, setValue] = useState('');
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useScreenCaptureProtection();
 
   const onSave = async () => {
     if (!value.trim()) return;
     setSaving(true);
-    await onSaved(value.trim());
-    setSaving(false);
-    setSaved(true);
+    setError(null);
+    try {
+      await onSaved(value.trim());
+      setSaved(true);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, 'Could not save your safe word. Please try again.'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -38,6 +46,7 @@ export function SafeWordForm({ headline, savedMessage, saveLabel, onSaved }: Pro
           onChangeText={(text) => {
             setValue(text);
             setSaved(false);
+            setError(null);
           }}
           secureTextEntry
           autoCapitalize="none"
@@ -50,6 +59,8 @@ export function SafeWordForm({ headline, savedMessage, saveLabel, onSaved }: Pro
       </View>
 
       <Text style={styles.guidance}>{copy.safeword.guidance}</Text>
+
+      {error && <Text style={styles.error}>⚠ {error}</Text>}
 
       <Button
         label={saving ? 'Saving…' : saveLabel ?? copy.safeword.save}
@@ -111,6 +122,11 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.textMuted,
     marginBottom: spacing.xl,
+  },
+  error: {
+    fontSize: typography.body,
+    color: colors.text,
+    marginBottom: spacing.md,
   },
   saveButton: {
     marginBottom: spacing.lg,

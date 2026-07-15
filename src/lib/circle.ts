@@ -1,14 +1,26 @@
 import { supabase } from './supabase';
 import { CircleMember, MemberStatus } from '../types/models';
 
-function fromRow(row: any): CircleMember {
+// Mirrors circle_members' columns (see supabase/migrations/0006_oauth_reset.sql).
+type CircleMemberRow = {
+  id: string;
+  circle_id: string;
+  user_id: string | null;
+  phone_number: string | null;
+  display_name: string;
+  status: MemberStatus;
+  invited_at: string;
+  confirmed_at: string | null;
+};
+
+function fromRow(row: CircleMemberRow): CircleMember {
   return {
     id: row.id,
     circleId: row.circle_id,
     userId: row.user_id,
     phoneNumber: row.phone_number,
     displayName: row.display_name,
-    status: row.status as MemberStatus,
+    status: row.status,
     invitedAt: row.invited_at,
     confirmedAt: row.confirmed_at,
   };
@@ -43,13 +55,39 @@ export async function getOwnCircleState(userId: string): Promise<OwnCircleState>
   return { role: 'none' };
 }
 
+// ROOT CAUSE FOUND (via migration 0008_debug_whoami.sql): auth.uid() was
+// always resolving correctly — a whoami() RPC call proved the server-side
+// identity matched `userId` exactly on every failing attempt. The real
+// culprit is a PostgreSQL/RLS interaction: `.insert(...).select().single()`
+// issues INSERT ... RETURNING, which requires the new row to *also* satisfy
+// a SELECT policy so it can be returned. That SELECT policy
+// (is_circle_member -> is_circle_creator, a `stable` security-definer
+// function) can evaluate against a pre-insert snapshot within the same
+// statement, so it doesn't yet see the row this same INSERT just created —
+// producing the exact same "new row violates row-level security policy"
+// text as a genuine WITH CHECK failure, despite the insert itself being
+// perfectly allowed. Splitting the insert and the read-back into two
+// separate statements avoids the same-statement snapshot issue entirely.
 export async function createCircle(userId: string): Promise<string> {
-  const { data, error } = await supabase
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) {
+    throw new Error("Your sign-in isn't ready yet — please wait a moment and try again.");
+  }
+  if (sessionData.session.user.id !== userId) {
+    throw new Error('The signed-in account changed — please restart the app and try again.');
+  }
+
+  const { error: insertError } = await supabase.from('circles').insert({ created_by: userId });
+  if (insertError) throw insertError;
+
+  const { data, error: selectError } = await supabase
     .from('circles')
-    .insert({ created_by: userId })
     .select('id')
+    .eq('created_by', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .single();
-  if (error) throw error;
+  if (selectError) throw selectError;
   return data.id;
 }
 

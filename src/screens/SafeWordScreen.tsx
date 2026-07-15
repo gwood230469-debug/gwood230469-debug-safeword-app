@@ -15,8 +15,8 @@ export function SafeWordScreen({}: Props) {
       <SafeWordForm
         headline="Safe word"
         savedMessage="Saved. Everyone in your circle will get a quiet notification that it changed."
-        onSaved={(value) => {
-          saveSafeWord(value);
+        onSaved={async (value) => {
+          await saveSafeWord(value);
         }}
       />
     </ScreenContainer>
